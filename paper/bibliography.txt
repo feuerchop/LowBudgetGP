@@ -1,0 +1,2 @@
+Wang, Joseph, Kirill Trapeznikov, and Venkatesh Saligrama. "Efficient learning by directed acyclic graph for resource constrained prediction." Advances in Neural Information Processing Systems. 2015.
+Xiao, Han, Huang Xiao, and Claudia Eckert. "Learning from multiple observers with unknown expertise." Pacific-Asia Conference on Knowledge Discovery and Data Mining. Springer Berlin Heidelberg, 2013.
