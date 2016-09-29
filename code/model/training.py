@@ -59,6 +59,7 @@ class LowBudgetCrowdsourcing:
 
     def logreg_train(self, X,Y):
         logreg = LogisticRegression()
+      #  print Y
         return (logreg.fit(X,Y).coef_, logreg)
 
 
@@ -66,7 +67,7 @@ class LowBudgetCrowdsourcing:
 
         predictions = []
         for client in chosen_clients:
-            predictions.append(self.models[client].predict(X))
+            predictions.append(self.models[client].predict_proba(X))
         return predictions
 
 # return medians, also detect outliers

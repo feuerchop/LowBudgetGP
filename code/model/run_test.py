@@ -5,19 +5,20 @@ import h5py
 from training import LowBudgetCrowdsourcing
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
+from sklearn.metrics import log_loss
 
 
-def load_data_uai():
+def load_data_uai(data_i):
 
     labels_list = []
     data_list = []
     groundtruth_list = []
-    for i in range(10):
-        print i
-        f = h5py.File('/home/kolosnjaji/datasets/crowdsourcing/UAI14_data/class_data_{0}.mat'.format(i+1), 'r')
-        labels_list.append(f['L'][:].T)
-        data_list.append(f['x'][:].T)
-        groundtruth_list.append(f['Y'][:].T)
+
+    print data_i
+    f = h5py.File('/home/kolosnjaji/datasets/crowdsourcing/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    labels_list.append(f['L'][:].T)
+    data_list.append(f['x'][:].T)
+    groundtruth_list.append(f['Y'][:].T)
 
     print "Stacking..."
     my_labels = np.hstack(labels_list).T
@@ -25,16 +26,6 @@ def load_data_uai():
     my_gt = np.vstack(groundtruth_list)
 
     return my_data, my_labels, my_gt
-
-#def load_data_welinder():
-
-
-
-
-
-
-
-
 
 def divide_indices_uai(num_cv=2, num_data=3220):
 
@@ -76,15 +67,17 @@ def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2
         y_test = []
         gt_test = []
 
-        labels_1 = len(np.nonzero(my_labels[:,client]==1)[0])
-        labels_0 = len(np.nonzero(my_labels[:,client]==0)[0])
-        labels_100 = len(np.nonzero(my_labels[:,client]==-100)[0])
+        labels_1 = len(np.nonzero(my_labels[training_indices,client]==1)[0])
+        labels_0 = len(np.nonzero(my_labels[training_indices,client]==0)[0])
+        labels_100 = len(np.nonzero(my_labels[training_indices,client]==-100)[0])
 
         labels_sum_1 = labels_1+labels_100
         labels_sum_0 = labels_0+labels_100
 
-        if not (labels_sum_0==np.size(my_labels,0) or labels_sum_1==np.size(my_labels,0)): # is everything 0 or 1
-
+  #      print "Client {0}, 1: {1}, 2: {2}, all: {3}".format(client, labels_sum_1, labels_sum_0, np.size(my_labels,0))
+  #      print my_labels[training_indices,client]
+        if not (labels_sum_0==len(training_indices) or labels_sum_1==len(training_indices)): # is everything 0 or 1
+  #          print "adding client"
             for i in training_indices:
                 if my_labels[i, client]!=-100:
                     X_training.append(my_data[i,:])
@@ -93,6 +86,7 @@ def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2
 
             X_training_all.append(np.vstack(X_training))
             y_training_all.append(y_training)
+    #        print y_training
             gt_training_all.append(gt_training)
 
 
@@ -108,42 +102,57 @@ def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2
 
 if __name__ == "__main__":
 
-    cv_number = 3
+    mean_errors_all = []
 
-    (X,L,Y) = load_data_uai()
+    np.random.seed(1337)
 
-    indices = divide_indices_uai(cv_number, np.size(X,0))
+    for data_number in range(10):
 
-    errors_all = []
+        cv_number = 3
 
-    for i in range(cv_number):
+        (X,L,Y) = load_data_uai(data_number+1)
 
-        (training_data, test_data) = divide_data_uai(X,L,Y,indices,i)
+        indices = divide_indices_uai(cv_number, np.size(X,0))
 
-        num_clients = len(training_data[0])
+        errors_all = []
+        min_num_clients = 21
 
-        num_clients_min = 1
-        num_clients_max = num_clients
-        num_clients_step = 1
+        for i in range(cv_number):
 
-        errors = []
+            (training_data, test_data) = divide_data_uai(X,L,Y,indices,i)
 
-        for k in range(num_clients_min, num_clients_max+1, num_clients_step):
+            num_clients = len(training_data[0])
 
-            my_model = LowBudgetCrowdsourcing(top_k = k)
+            if (num_clients<min_num_clients):
+                min_num_clients = num_clients
 
-            my_model.train(training_data[0],training_data[1])
-            my_predictions = my_model.predict(test_data[0])
+            num_clients_min = 1
+            num_clients_max = num_clients
+            num_clients_step = 1
 
-            my_error = norm(np.squeeze(my_predictions[0])-test_data[1].T)
+            errors = []
 
-            errors.append(my_error)
-        errors_all.append(errors)
+            for k in range(num_clients_min, num_clients_max+1, num_clients_step):
+
+                my_model = LowBudgetCrowdsourcing(top_k = k)
+
+                my_model.train(training_data[0],training_data[1])
+                my_predictions = my_model.predict(test_data[0])
+
+                my_error = log_loss(test_data[1], np.squeeze(my_predictions[0]))/len(test_data[1])
+#                print my_error
+                errors.append(my_error)
+            errors_all.append(errors)
 
 #    errors_all = np.vstack(errors_all)
+        mean_errors_cv = []
+        for cl in range(min_num_clients):
+            mean_errors_cv.append(np.mean([errors_all[cv][cl] for cv in range(cv_number)]))
 
-    plt.plot(range(num_clients_min, num_clients_max+1), np.mean(np.vstack(errors_all),0), '.-')
-    plt.savefig('plot_cv.png'.format(i))
+        mean_errors_all.append(np.mean(mean_errors_cv))
+        plt.figure()
+        plt.plot(range(num_clients_min, min_num_clients+1), mean_errors_cv, '.-')
+        plt.savefig('plot_cv_{0}.png'.format(data_number))
 
 
 

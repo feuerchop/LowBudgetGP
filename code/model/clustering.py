@@ -16,10 +16,10 @@ def distance_matrix(X):
 
 def kMedoids(X, k, tmax=1000):
     # determine dimensions of distance matrix D
-    print "Computing distances..."
+  #  print "Computing distances..."
     D = distance_matrix(X)
-    print "Mean distance: {0} {1}".format(np.mean(D), np.median(D))
-    print "Mean X: {0} {1}".format(np.mean(X, 0), np.std(X,0))
+ #   print "Mean distance: {0} {1}".format(np.mean(D), np.median(D))
+ #   print "Mean X: {0} {1}".format(np.mean(X, 0), np.std(X,0))
 
     m, n = D.shape
 
@@ -58,6 +58,6 @@ def kMedoids(X, k, tmax=1000):
             C[kappa] = np.where(J==kappa)[0]
 
      # return results
-    print M
-    print C
+  #  print M
+  #  print C
     return M, C

@@ -34,5 +34,3 @@ if __name__ == "__main__":
         stdout_feat_list_float = [float(stdout_feat_list[k]) for k in range(len(stdout_feat_list[0:-1]))]
         np.savetxt('/home/kolosnjaji/papers/communication_efficient_ensemble_learning/github/LowBudgetGP/data/welinder/images/{0}'.format(i) + '.txt', np.asarray(stdout_feat_list_float))
 
-#        ('/home/kolosnjaji/papers/communication_efficient_ensemble_learning/github/LowBudgetGP/data/welinder/images/{0}'.format(i) + '.txt'))
-
