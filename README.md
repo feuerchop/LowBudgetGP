@@ -11,5 +11,5 @@ Required packages to run this repo. See requirements.txt.
 
 You can install all required libs using pip, as:
 ```bash
-pip install -r -U requirements.txt
+pip install -U -r requirements.txt
 ```
