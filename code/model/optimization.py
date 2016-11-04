@@ -23,10 +23,16 @@ class GenGradDescModel:
     def grad_update(self,x, my_grad, TIMESTEP=0.001, PARAM_LAMBDA=0.01): # for each vector
         return x+self.Slambda(x-TIMESTEP*my_grad,PARAM_LAMBDA)
 
-    def grad_compute(self):
-
-        pass
-
+    def optimization(self,x,w_init,v_init, y_target, NUM_IT=100, NUM_IT_P=10):
+        for i in range(NUM_IT):
+            updated_w = w_init
+            updated_v = v_init
+            for j in range(NUM_IT_P):
+                grad_w = self.grad_ce_w(x,y_target,w,v)
+                updated_w = self.grad_update(updated_w, grad_w)
+            for j in range(NUM_IT_P):
+                grad_v = self.grad_ce_v(x,y_target,w,v)
+                updated_v = self.grad_update(updated_v,grad_w)
 
     def cross_entropy_all(self,x,y,y_target,v,w,param_lambda ):
         M,N = y.shape # m-clients, n-data points;
@@ -45,7 +51,7 @@ class GenGradDescModel:
             y[i] = 1/(1+np.exp(-np.dot(w,x[i,:])))
         return y
 
-    def grad_log_reg(self,x,w):
+    def grad_log_reg(self,x,w): # gradient of logistic regression
         num_data = x.shape[0]
         grad_y = np.zeros(num_data)
 
@@ -54,14 +60,28 @@ class GenGradDescModel:
 
         return grad_y
 
-    def grad_ce_w(self,x, y_target, w,v,):
-        y_gradients = self.grad_log_reg(x,w)
+    def grad_ce_w(self,x, y_target, w,v,): # return vector size(w)
+        y_gradients = self.grad_log_reg(x,w) # return vector size(w)
+        num_data = x.shape[0]
+        num_params = w.shape[0]
+        sum_grad = np.zeros()
+        for n in range(num_data):
+            sum_cl = np.dot(v,y[:,n])
+            sum_grad += y_target[n]*(1/sum_cl)*y_gradients[n,i] + (1-y_target[i])*(1/(1-sum_cl))*(-np.dot(v, y_gradients[:,i]))
+        return -sum_grad/num_data
 
+    def grad_ce_v(self,x,y_target,w,v): # return vector size(v)
+        y = self.log_reg(x,w)
+        num_data = x.shape[0]
+        num_clients = x.shape[1]
+        sum_grad = np.zeros(num_clients)
+        for n in range(num_data):
+            for i in range(num_clients):
+                sum_grad[i]+= y_target[n]*np.log(y[i,n]) + (1-y_target[n]) * np.log(1-y[i,n])        pass
+        return sum_grad
 
-
-
-
-
+    def test(self, Y):
+        pass
 
 
 

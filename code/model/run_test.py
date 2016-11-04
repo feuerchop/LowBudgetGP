@@ -6,7 +6,7 @@ from training import LowBudgetCrowdsourcing
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from sklearn.metrics import log_loss
-
+from optimization import GenGradDescModel
 
 def load_data_uai(data_i):
 
@@ -100,13 +100,13 @@ def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2
     test_data = [X_test, gt_test]
     return [training_data, test_data]
 
-if __name__ == "__main__":
+def test_clustering():
 
     mean_errors_all = []
 
     np.random.seed(1337)
 
-    for data_number in range(10):
+    for data_number in range(10): # which dataset
 
         cv_number = 3
 
@@ -155,6 +155,22 @@ if __name__ == "__main__":
         plt.savefig('plot_cv_{0}.png'.format(data_number))
 
 
+def test_optimization():
+    loss_data = []
+    for data_number in range(10): # which dataset
 
+        cv_number = 3
 
+        (X,L,Y) = load_data_uai(data_number+1)
 
+        indices = divide_indices_uai(cv_number, np.size(X,0))
+        loss_cv = []
+        for i in range(cv_number):
+
+            (training_data, test_data) = divide_data_uai(X,L,Y,indices,i)
+
+            train_model = GenGradDescModel()
+            [n,m] = X.shape
+            train_model.optimization(X, np.zeros(m), np.zeros(21), L)
+            loss_cv.append(train_model.test(X, L, Y))
+        loss_data.append(np.mean(loss_cv))
