@@ -77,7 +77,8 @@ class GenGradDescModel:
         sum_grad = np.zeros(num_clients)
         for n in range(num_data):
             for i in range(num_clients):
-                sum_grad[i]+= y_target[n]*np.log(y[i,n]) + (1-y_target[n]) * np.log(1-y[i,n])        pass
+                sum_grad[i]+= y_target[n]*np.log(y[i,n]) + (1-y_target[n]) * np.log(1-y[i,n])
+
         return sum_grad
 
     def test(self, Y):

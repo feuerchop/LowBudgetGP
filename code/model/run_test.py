@@ -6,7 +6,7 @@ from training import LowBudgetCrowdsourcing
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from sklearn.metrics import log_loss
-from optimization import GenGradDescModel
+from optimization_no_annotations import GenGradDescModelNoAnnotations
 
 def load_data_uai(data_i):
 
@@ -15,7 +15,7 @@ def load_data_uai(data_i):
     groundtruth_list = []
 
     print data_i
-    f = h5py.File('/home/kolosnjaji/datasets/crowdsourcing/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    f = h5py.File('/home/bojan/research/datasets/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
     labels_list.append(f['L'][:].T)
     data_list.append(f['x'][:].T)
     groundtruth_list.append(f['Y'][:].T)
@@ -46,6 +46,20 @@ def divide_indices_uai(num_cv=2, num_data=3220):
                 training_indices.append(random_indices[j])
         cv_indices.append((training_indices, test_indices))
     return cv_indices
+
+def divide_data_uai_no_annotations(my_data, my_gt, cv_indices,i):
+    cv_division = cv_indices[i]
+    training_indices = cv_division[0]
+    test_indices = cv_division[1]
+    X_training = my_data[training_indices,:]
+    y_training = my_gt[training_indices]
+    X_test = my_data[test_indices,:]
+    y_test = my_gt[test_indices]
+    train_data = (X_training, y_training)
+    test_data = (X_test, y_test)
+    return (train_data, test_data)
+
+
 
 def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2400, 2400,
     cv_division = cv_indices[i]
@@ -96,9 +110,12 @@ def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2
     X_test = np.vstack(X_test)
     gt_test = np.vstack(gt_test)
 
-    training_data = [X_training_all, y_training_all, gt_training_all]
+    training_data = [X_training_all, y_training_all, gt_training_all, gt_x]
     test_data = [X_test, gt_test]
     return [training_data, test_data]
+
+
+
 
 def test_clustering():
 
@@ -155,7 +172,7 @@ def test_clustering():
         plt.savefig('plot_cv_{0}.png'.format(data_number))
 
 
-def test_optimization():
+def test_optimization_no_annotations():
     loss_data = []
     for data_number in range(10): # which dataset
 
@@ -167,10 +184,13 @@ def test_optimization():
         loss_cv = []
         for i in range(cv_number):
 
-            (training_data, test_data) = divide_data_uai(X,L,Y,indices,i)
-
-            train_model = GenGradDescModel()
+            (training_data, test_data) = divide_data_uai_no_annotations(X,Y,indices,i)
             [n,m] = X.shape
-            train_model.optimization(X, np.zeros(m), np.zeros(21), L)
-            loss_cv.append(train_model.test(X, L, Y))
+            train_model = GenGradDescModelNoAnnotations(np.random.rand(21,m)/10000, np.ones(21)/21)
+            train_model.optimization(training_data[0], training_data[1])
+            loss_cv.append(train_model.test(test_data[0], test_data[1]))
+            print loss_cv[i]
         loss_data.append(np.mean(loss_cv))
+
+if __name__=="__main__":
+    test_optimization_no_annotations()
