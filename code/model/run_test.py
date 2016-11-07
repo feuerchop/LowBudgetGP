@@ -15,12 +15,12 @@ def load_data_uai(data_i):
     groundtruth_list = []
 
     print data_i
-    f = h5py.File('/home/bojan/research/datasets/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    f = h5py.File('../../data/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
     labels_list.append(f['L'][:].T)
     data_list.append(f['x'][:].T)
     groundtruth_list.append(f['Y'][:].T)
 
-    print "Stacking..."
+    #print "Stacking..."
     my_labels = np.hstack(labels_list).T
     my_data = np.vstack(data_list)
     my_gt = np.vstack(groundtruth_list)
@@ -186,7 +186,9 @@ def test_optimization_no_annotations():
 
             (training_data, test_data) = divide_data_uai_no_annotations(X,Y,indices,i)
             [n,m] = X.shape
-            train_model = GenGradDescModelNoAnnotations(np.random.rand(21,m)/10000, np.ones(21)/21)
+            random_v = np.random.normal(1,0.5, 21)/21
+            random_v = random_v/np.sum(random_v)
+            train_model = GenGradDescModelNoAnnotations(np.random.rand(21,m)/1000000, random_v)
             train_model.optimization(training_data[0], training_data[1])
             loss_cv.append(train_model.test(test_data[0], test_data[1]))
             print loss_cv[i]

@@ -20,10 +20,11 @@ class GenGradDescModelNoAnnotations:
             else:
                 res_x[i]=0
         return res_x
-    def grad_update(self,x, my_grad, TIMESTEP=0.000001): # for each vector
+
+    def grad_update(self,x, my_grad, TIMESTEP=0.0000001): # for each vector
         return self.Slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
 
-    def optimization(self,x,y_target, NUM_IT=1000, NUM_IT_P=10, PARAM_LAMBDA_W = 0.001):
+    def optimization(self,x,y_target, NUM_IT=1000, NUM_IT_P=10, PARAM_LAMBDA_W = 0.0001):
         y = self.log_reg(x, self.w)
         loss = self.cross_entropy_all(x, y, y_target)
         print "Initial Loss: {0}".format(loss)
@@ -39,18 +40,19 @@ class GenGradDescModelNoAnnotations:
                 # print j
                 grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
                 self.v = self.grad_update(self.v,grad_v)
+                self.v = self.v/np.sum(self.v) # keep sum to 1
             y = self.log_reg(x,self.w)
             loss = self.cross_entropy_all(x,y,y_target)
-            print "Iteration {0} Loss: {1}".format(i, loss)
+            errors = self.errors_count(y,y_target)
+            print "Iteration {0} Loss: {1} Errors:{2}".format(i, loss, errors)
 
     def cross_entropy_all(self,x,y,y_target):
         M,N = y.shape # m-clients, n-data points;
         N,D = x.shape # n-data points, d-dimensionality of d
         ce_n = 0
+        print self.v
         for n in range(N):
             sum_cl = np.dot(self.v,y[:,n])
-            print self.v
-            print sum_cl
             ce_n += y_target[n]*np.log(sum_cl) + (1-y_target[n])*np.log(1-sum_cl)
         ce_n = -ce_n/N
         return ce_n + self.PARAM_LAMBDA * np.linalg.norm(self.v, 1)
@@ -95,11 +97,21 @@ class GenGradDescModelNoAnnotations:
         num_data = x.shape[0]
         num_clients = w.shape[0]
         sum_grad = np.zeros(num_clients) #
+       # print self.v
         for n in range(num_data):
             sum_cl = np.dot(v, y[:, n])
             sum_grad += y_target[n]*(1/sum_cl)*np.log(y[:,n]) + (1-y_target[n]) * (1/(1-sum_cl))*np.log(1-y[:,n])
 
         return sum_grad
+
+    def errors_count(self,y,y_target):
+        N = y_target.shape[0]
+        y_labels = np.zeros((N,1))
+        for n in range(N):
+            label_float = np.dot(self.v,y[:,n])
+            if label_float>0.5:
+                y_labels[n] = 1
+        return np.sum(y_labels!=y_target)
 
     def test(self, Y):
         pass
