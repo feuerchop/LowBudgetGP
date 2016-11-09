@@ -21,7 +21,7 @@ class GenGradDescModelNoAnnotations:
                 res_x[i]=0
         return res_x
 
-    def grad_update(self,x, my_grad, TIMESTEP=0.0000001): # for each vector
+    def grad_update(self,x, my_grad, TIMESTEP=0.000000001): # for each vector
         return self.Slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
 
     def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT=1000, NUM_IT_P=10, PARAM_LAMBDA_W = 0.001, PARAM_LAMBDA_ANNOTATIONS=1):
