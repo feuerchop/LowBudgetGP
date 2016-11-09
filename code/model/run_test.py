@@ -47,21 +47,56 @@ def divide_indices_uai(num_cv=2, num_data=3220):
         cv_indices.append((training_indices, test_indices))
     return cv_indices
 
-def divide_data_uai_no_annotations(my_data, my_gt, cv_indices,i):
+def divide_data_uai_no_annotations(my_data, my_labels, my_gt, cv_indices,i):
     cv_division = cv_indices[i]
     training_indices = cv_division[0]
     test_indices = cv_division[1]
     X_training = my_data[training_indices,:]
     y_training = my_gt[training_indices]
+    y_training_label_indices = [] # num_clientsx list of indices
+    y_training_label_values = [] # num_clientsxlist of labels
+    y_training_labels = my_labels[training_indices, :]
+
+    num_clients = y_training_labels.shape[1]
+    num_labels = y_training_labels.shape[0]
+
+    for c in range(num_clients):
+        y_list = []
+        y_indices = []
+        for l in range(num_labels):
+            if (y_training_labels[l,c] != -100): # label exists
+                y_list.append(y_training_labels[l,c])
+                y_indices.append(l)
+        y_training_label_values.append(y_list)
+        y_training_label_indices.append(y_indices)
+
+
     X_test = my_data[test_indices,:]
     y_test = my_gt[test_indices]
-    train_data = (X_training, y_training)
-    test_data = (X_test, y_test)
+    y_test_label_indices = []  # num_clientsx list of indices
+    y_test_label_values = []  # num_clientsxlist of labels
+    y_test_labels = my_labels[test_indices, :]
+
+    num_labels = y_test_labels.shape[0]
+
+    for c in range(num_clients):
+        y_list = []
+        y_indices = []
+        for l in range(num_labels):
+            if (y_test_labels[l,c] != -100): # label exists
+                y_list.append(y_test_labels[l,c])
+                y_indices.append(l)
+        y_test_label_values.append(y_list)
+        y_test_label_indices.append(y_indices)
+
+
+    train_data = (X_training, y_training, y_training_label_indices, y_training_label_values)
+    test_data = (X_test, y_test, y_test_label_indices, y_test_label_values)
     return (train_data, test_data)
 
 
 
-def divide_data_uai(my_data, my_labels, my_gt, cv_indices, i): # 3220x2400, 21x2400, 2400,
+def divide_data_uai(my_data, my_gt, my_labels, cv_indices, i): # 3220x2400, 21x2400, 2400,
     cv_division = cv_indices[i]
     training_indices = cv_division[0]
     test_indices = cv_division[1]
@@ -184,13 +219,16 @@ def test_optimization_no_annotations():
         loss_cv = []
         for i in range(cv_number):
 
-            (training_data, test_data) = divide_data_uai_no_annotations(X,Y,indices,i)
+            (training_data, test_data) = divide_data_uai_no_annotations(X,L,Y,indices,i)
             [n,m] = X.shape
             random_v = np.random.normal(1,0.5, 21)/21
             random_v = random_v/np.sum(random_v)
-            train_model = GenGradDescModelNoAnnotations(np.random.rand(21,m)/1000000, random_v)
-            train_model.optimization(training_data[0], training_data[1])
-            loss_cv.append(train_model.test(test_data[0], test_data[1]))
+            random_w = np.random.normal(0, 0.0005, (21,m))
+            train_model = GenGradDescModelNoAnnotations(random_w, random_v)
+            print "******************TRAINING******************"
+            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1000, NUM_IT_P=1)
+            print "******************TESTING******************"
+            loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3]))
             print loss_cv[i]
         loss_data.append(np.mean(loss_cv))
 
