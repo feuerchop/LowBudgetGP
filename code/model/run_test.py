@@ -7,6 +7,7 @@ from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from sklearn.metrics import log_loss
 from optimization_no_annotations import GenGradDescModelNoAnnotations
+import sys
 
 def load_data_uai(data_i):
 
@@ -207,7 +208,8 @@ def test_clustering():
         plt.savefig('plot_cv_{0}.png'.format(data_number))
 
 
-def test_optimization_no_annotations():
+def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA):
+    np.random.seed(42)
     loss_data = []
     for data_number in range(10): # which dataset
 
@@ -223,14 +225,42 @@ def test_optimization_no_annotations():
             [n,m] = X.shape
             random_v = np.random.normal(1,0.5, 21)/21
             random_v = random_v/np.sum(random_v)
-            random_w = np.random.normal(0, 0.0005, (21,m))
+            random_w = np.random.normal(0, 0.05, (21,m))
             train_model = GenGradDescModelNoAnnotations(random_w, random_v)
             print "******************TRAINING******************"
-            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1000, NUM_IT_P=1)
+            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1000, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP)
             print "******************TESTING******************"
-            loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3]))
+            loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3], PARAM_LAMBDA_ANNOTATIONS))
             print loss_cv[i]
         loss_data.append(np.mean(loss_cv))
 
 if __name__=="__main__":
-    test_optimization_no_annotations()
+
+    test = ''
+
+    if (test == 'all'):
+        print "Testing all parameter configurations, takes some days"
+
+        PARAM_LAMBDA_ANNOTATIONS_A = [0.01, 0.1, 1 ]
+        NUM_IT_P_A = [1, 5, 10]
+        PARAM_LAMBDA_W_A = [0.000001, 0.00001, 0.0001, 0.001]
+        TIMESTEP_A = [0.00001, 0.000001, 0.0000001, 0.00000001]
+        PARAM_LAMBDA_A = [0.00001, 0.0001, 0.001, 0.01]
+
+        for PARAM_LAMBDA_ANNOTATIONS in PARAM_LAMBDA_ANNOTATIONS_A:
+            for NUM_IT_P in NUM_IT_P_A:
+                for PARAM_LAMBDA_W in PARAM_LAMBDA_W_A:
+                    for TIMESTEP in TIMESTEP_A:
+                        for PARAM_LAMBDA in PARAM_LAMBDA_A:
+                            sys.stdout = open('{0}_{1}_{2}_{3}_{4}.txt'.format(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA, TIMESTEP, PARAM_LAMBDA), 'w')
+                            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA)
+
+    else:
+        print "Fast test with manually assigned parameters"
+
+        PARAM_LAMBDA_ANNOTATIONS = 0.1
+        NUM_IT_P = 5
+        PARAM_LAMBDA_W = 0.00000005
+        TIMESTEP = 0.000001
+        PARAM_LAMBDA = 0.0001
+        test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA)

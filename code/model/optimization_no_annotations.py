@@ -7,7 +7,7 @@ class GenGradDescModelNoAnnotations:
         self.w = w_init
         self.v = v_init
         self.num_clients = self.w.shape[0]
-        self.PARAM_LAMBDA = 0.00001
+        #self.PARAM_LAMBDA = 0.0001
 
     def Slambda(self,x, param_lambda):
         res_x = np.zeros(x.shape[0])
@@ -21,10 +21,11 @@ class GenGradDescModelNoAnnotations:
                 res_x[i]=0
         return res_x
 
-    def grad_update(self,x, my_grad, TIMESTEP=0.000000001): # for each vector
+    def grad_update(self,x, my_grad, TIMESTEP): # for each vector # optimization of v
         return self.Slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
 
-    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT=1000, NUM_IT_P=10, PARAM_LAMBDA_W = 0.001, PARAM_LAMBDA_ANNOTATIONS=1):
+    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT, NUM_IT_P, PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA, TIMESTEP):
+        self.PARAM_LAMBDA = PARAM_LAMBDA
         y = self.log_reg(x, self.w)
         loss = self.cross_entropy_all(x, y, y_target, y_client_annotations, y_client_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         print "Initial Loss: {0}".format(loss)
@@ -40,14 +41,16 @@ class GenGradDescModelNoAnnotations:
             for j in range(NUM_IT_P):
                 # print j
                 grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
-                self.v = self.grad_update(self.v,grad_v)
+                self.v = self.grad_update(self.v,grad_v, TIMESTEP=TIMESTEP)
                 self.v = self.v/np.sum(self.v) # keep sum to 1
             y = self.log_reg(x,self.w)
+
             #print "W: {0}".format(self.w)
-            #print "V: {0}".format(self.v)
+            print "V:\n{0}".format(self.v * 100)
+            print "Y:\n{0}".format(y)
             loss = self.cross_entropy_all(x,y,y_target, y_client_annotations, y_client_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
             errors = self.errors_count(y,y_target)
-            print "Iteration {0} Loss: {1} Errors:{2}".format(i, loss, errors)
+            print "Iteration {0} Loss: {1} Error Percentage:{2}%".format(i, loss, errors)
 
     def cross_entropy_all(self,x,y,y_target, y_client_annotations, y_client_annotation_indices, PARAM_LAMBDA_ANNOTATIONS):
         M,N = y.shape # m-clients, n-data points;
@@ -57,7 +60,7 @@ class GenGradDescModelNoAnnotations:
         for n in range(N):
             ce_n += y_target[n]*np.log(sum_cl[n]) + (1-y_target[n])*np.log(1-sum_cl[n])
         ce_n = -ce_n/N
-        #print "Y: {0}".format(sum_cl.T)
+        print "Y: {0}".format(sum_cl.T)
         #### we have annotation errors in additon
         sum_annot_error = 0
         num_points = 0
@@ -74,9 +77,10 @@ class GenGradDescModelNoAnnotations:
         num_data = x.shape[0]
         num_clients = w.shape[0]
         y = np.zeros((num_clients, num_data))
+        print "W:\n" + str(w)
         for c in range(num_clients):
             for i in range(num_data):
-                y[c,i] = 1/(1+np.exp(-np.dot(w[c,:],x[i,:])+0.5))
+                y[c,i] = 1/(1+np.exp(-np.dot(w[c,:],x[i,:])-0.5))
         return y
 
     def grad_log_reg(self, x, w): # gradient of logistic regression
@@ -120,6 +124,8 @@ class GenGradDescModelNoAnnotations:
         for n in range(num_data):
             sum_cl = np.dot(v, y[:, n])
             sum_grad += y_target[n]*(1/sum_cl)*np.log(y[:,n]) + (1-y_target[n]) * (1/(1-sum_cl))*np.log(1-y[:,n])
+            print "V:" + str(v)
+            print "Y:" + str(y)
 
         return sum_grad
 
@@ -128,18 +134,19 @@ class GenGradDescModelNoAnnotations:
         y_labels = np.zeros((N,1))
         for n in range(N):
             label_float = np.dot(self.v,y[:,n])
+
             if label_float>0.5:
                 y_labels[n] = 1
-        #print y_labels.T
-        return np.sum(y_labels!=y_target)
 
-    def test(self, test_X, test_Y, test_annotation_indices, test_annotations, ):
+        return np.sum(y_labels!=y_target)*100/float(len(y_labels))
+
+    def test(self, test_X, test_Y, test_annotation_indices, test_annotations, PARAM_LAMBDA_ANNOTATIONS):
         data_num, data_dim = test_X.shape
 
         client_response = self.log_reg(test_X, self.w) # clients x num_data
         error_count = self.errors_count(client_response, test_Y)
         print "TESTING ACCURACY: {0}%".format((data_num-error_count)*100/data_num)
-        loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS=0.1)
+        loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         return loss
 
 
