@@ -1,5 +1,6 @@
 __author__ = 'kolosnjaji'
 import numpy as np
+import warnings
 
 class GenGradDescModelNoAnnotations:
 
@@ -37,17 +38,21 @@ class GenGradDescModelNoAnnotations:
                 grad_w = self.grad_ce_w(x,y_target, y_client_annotations, y_client_annotation_indices, self.w,self.v, PARAM_LAMBDA_ANNOTATIONS)
                 #print "Grad W: pos: {0} neg: {1} zero: {2}".format(np.sum(grad_w>0), np.sum(grad_w<0), np.sum(grad_w==0))
                 self.w = self.w - grad_w*PARAM_LAMBDA_W;
+                #print "W:\n" + str(self.w)
             #print "Optimizing v..."
             for j in range(NUM_IT_P):
+                #print "V:\n{0}".format(self.v * 100)
                 # print j
                 grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
                 self.v = self.grad_update(self.v,grad_v, TIMESTEP=TIMESTEP)
+                self.v[self.v<0] = 0
                 self.v = self.v/np.sum(self.v) # keep sum to 1
             y = self.log_reg(x,self.w)
 
             #print "W: {0}".format(self.w)
-            print "V:\n{0}".format(self.v * 100)
-            print "Y:\n{0}".format(y)
+            #print np.where(self.v>0)
+            print "V not 0:{0}".format(len(np.where(self.v>0)[0]))
+           # print "Y:\n{0}".format(y)
             loss = self.cross_entropy_all(x,y,y_target, y_client_annotations, y_client_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
             errors = self.errors_count(y,y_target)
             print "Iteration {0} Loss: {1} Error Percentage:{2}%".format(i, loss, errors)
@@ -57,10 +62,16 @@ class GenGradDescModelNoAnnotations:
         N,D = x.shape # n-data points, d-dimensionality of d
         ce_n = 0
         sum_cl = np.dot(y.T, self.v)
+
+
+
         for n in range(N):
+            if (sum_cl[n]>=1 or sum_cl[n]<=0):
+                print "Warning!"
             ce_n += y_target[n]*np.log(sum_cl[n]) + (1-y_target[n])*np.log(1-sum_cl[n])
         ce_n = -ce_n/N
-        print "Y: {0}".format(sum_cl.T)
+
+        #print "Y: {0}".format(sum_cl.T)
         #### we have annotation errors in additon
         sum_annot_error = 0
         num_points = 0
@@ -77,7 +88,7 @@ class GenGradDescModelNoAnnotations:
         num_data = x.shape[0]
         num_clients = w.shape[0]
         y = np.zeros((num_clients, num_data))
-        print "W:\n" + str(w)
+
         for c in range(num_clients):
             for i in range(num_data):
                 y[c,i] = 1/(1+np.exp(-np.dot(w[c,:],x[i,:])-0.5))
@@ -123,11 +134,12 @@ class GenGradDescModelNoAnnotations:
         sum_grad = np.zeros(num_clients) #
         for n in range(num_data):
             sum_cl = np.dot(v, y[:, n])
-            sum_grad += y_target[n]*(1/sum_cl)*np.log(y[:,n]) + (1-y_target[n]) * (1/(1-sum_cl))*np.log(1-y[:,n])
-            print "V:" + str(v)
-            print "Y:" + str(y)
+            #sum_grad += y_target[n]*(1/sum_cl)*np.log(y[:,n]) + (1-y_target[n]) * (1/(1-sum_cl))*np.log(1-y[:,n])
+            sum_grad += y_target[n]*(1/sum_cl)*y[:,n] + (1-y_target[n]) * (1/(1-sum_cl))*(-y[:,n])
+            #print "V:" + str(v)
+            #print "Y:" + str(y)
 
-        return sum_grad
+        return -sum_grad
 
     def errors_count(self,y,y_target):
         N = y_target.shape[0]
