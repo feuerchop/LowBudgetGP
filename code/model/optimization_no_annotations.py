@@ -1,6 +1,7 @@
 __author__ = 'kolosnjaji'
 import numpy as np
 import warnings
+from sklearn.neural_network.multilayer_perceptron import MLPClassifier
 
 class GenGradDescModelNoAnnotations:
 
@@ -10,7 +11,13 @@ class GenGradDescModelNoAnnotations:
         self.num_clients = self.w.shape[0]
         #self.PARAM_LAMBDA = 0.0001
 
-    def Slambda(self,x, param_lambda):
+    @staticmethod
+    def sigmoid_array(x):
+
+        return 1 / (1 + np.exp(-x))
+
+    @staticmethod
+    def slambda(x, param_lambda):
         res_x = np.zeros(x.shape[0])
         res_size = x.shape[0]
         for i in range(res_size):
@@ -22,12 +29,45 @@ class GenGradDescModelNoAnnotations:
                 res_x[i]=0
         return res_x
 
-    def grad_update(self,x, my_grad, TIMESTEP): # for each vector # optimization of v
-        return self.Slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
+    def pretrain(self, x, y_target, num_iterations=10):
+        num_dimensions = x.shape[1]
+        # self.mlp_pretrained = []
+        # num_clients = len(y_client_annotations)
+        # for client in range(num_clients):
+        #     mlp_clf = MLPClassifier(hidden_layer_sizes=(num_dimensions,), activation='sigmoid', solver='adam')
+        #     x_client = x[y_client_annotation_indices, :]
+        #     y_client = y_client_annotations
+        #     mlp_clf.fit(x_client,y_client)
+        #     self.mlp_pretrained.append(mlp_clf)
+        self.mlp_pretrained = MLPClassifier(hidden_layer_sizes=(num_dimensions), activation='logistic', solver='adam', max_iter=num_iterations)
+        self.mlp_pretrained.fit(x,np.ravel(y_target))
+        print self.mlp_pretrained.coefs_[0].shape # 4096x4096
+        print self.mlp_pretrained.coefs_[1].shape # 4096x1 - logistic regression
+        print len(self.mlp_pretrained.coefs_)
+        print num_dimensions
 
-    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT, NUM_IT_P, PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA, TIMESTEP):
+
+
+    def grad_update(self,x, my_grad, TIMESTEP): # for each vector # optimization of v
+        return self.slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
+
+    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT, NUM_IT_P, PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA, TIMESTEP, method='LOGREG'):
         self.PARAM_LAMBDA = PARAM_LAMBDA
-        y = self.log_reg(x, self.w)
+        num_clients = len(y_client_annotation_indices)
+        if (method=="MLP"):
+            self.pretrain(x,y_target)
+            self.x_intermediate = self.sigmoid_array(np.dot(x, self.mlp_pretrained.coefs_[0]))
+            self.w = np.tile(self.mlp_pretrained.coefs_[1].T,(num_clients,1))
+            y = self.log_reg(self.x_intermediate, self.w)
+
+
+        elif (method=="LOGREG"):
+            y = self.log_reg(x, self.w)
+
+        else:
+            print "Method not recognized!"
+            exit(-1)
+
         loss = self.cross_entropy_all(x, y, y_target, y_client_annotations, y_client_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         print "Initial Loss: {0}".format(loss)
         print "Optimization..."
@@ -35,7 +75,10 @@ class GenGradDescModelNoAnnotations:
             #print "Optimizing w..."
             for j in range(NUM_IT_P):
                 # print j
-                grad_w = self.grad_ce_w(x,y_target, y_client_annotations, y_client_annotation_indices, self.w,self.v, PARAM_LAMBDA_ANNOTATIONS)
+                if (method=="MLP"):
+                    grad_w = self.grad_ce_w(self.x_intermediate, y_target, y_client_annotations, y_client_annotation_indices, self.w, self.v, PARAM_LAMBDA_ANNOTATIONS)
+                else:
+                    grad_w = self.grad_ce_w(x,y_target, y_client_annotations, y_client_annotation_indices, self.w,self.v, PARAM_LAMBDA_ANNOTATIONS)
                 #print "Grad W: pos: {0} neg: {1} zero: {2}".format(np.sum(grad_w>0), np.sum(grad_w<0), np.sum(grad_w==0))
                 self.w = self.w - grad_w*PARAM_LAMBDA_W;
                 #print "W:\n" + str(self.w)
@@ -47,7 +90,11 @@ class GenGradDescModelNoAnnotations:
                 self.v = self.grad_update(self.v,grad_v, TIMESTEP=TIMESTEP)
                 self.v[self.v<0] = 0
                 self.v = self.v/np.sum(self.v) # keep sum to 1
-            y = self.log_reg(x,self.w)
+
+            if (method=="MLP"):
+                y = self.log_reg(self.x_intermediate,self.w)
+            else:
+                y = self.log_reg(x, self.w)
 
             #print "W: {0}".format(self.w)
             #print np.where(self.v>0)

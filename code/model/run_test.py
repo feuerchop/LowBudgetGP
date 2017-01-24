@@ -9,14 +9,16 @@ from sklearn.metrics import log_loss
 from optimization_no_annotations import GenGradDescModelNoAnnotations
 import sys
 
+
 def load_data_uai(data_i):
 
     labels_list = []
     data_list = []
     groundtruth_list = []
+    # /home/bojan/research/datasets/UAI14_data/class_data_{0}.mat
 
     print data_i
-    f = h5py.File('/home/bojan/research/datasets/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    f = h5py.File('/home/kolosnjaji/papers/communication_efficient_ensemble_learning/LowBudgetGP/data/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
     labels_list.append(f['L'][:].T)
     data_list.append(f['x'][:].T)
     groundtruth_list.append(f['Y'][:].T)
@@ -228,7 +230,7 @@ def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_L
             random_w = np.random.normal(0, 0.05, (21,m))
             train_model = GenGradDescModelNoAnnotations(random_w, random_v)
             print "******************TRAINING******************"
-            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1000, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP)
+            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1000, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method='MLP')
             print "******************TESTING******************"
             loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3], PARAM_LAMBDA_ANNOTATIONS))
             print loss_cv[i]
