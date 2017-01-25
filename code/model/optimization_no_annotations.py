@@ -86,7 +86,10 @@ class GenGradDescModelNoAnnotations:
             for j in range(NUM_IT_P):
                 #print "V:\n{0}".format(self.v * 100)
                 # print j
-                grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
+                if (method=='MLP'):
+                    grad_v = self.grad_ce_v(self.x_intermediate, y_target, self.w, self.v)
+                else:
+                    grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
                 self.v = self.grad_update(self.v,grad_v, TIMESTEP=TIMESTEP)
                 self.v[self.v<0] = 0
                 self.v = self.v/np.sum(self.v) # keep sum to 1
@@ -138,14 +141,14 @@ class GenGradDescModelNoAnnotations:
 
         for c in range(num_clients):
             for i in range(num_data):
-                y[c,i] = 1/(1+np.exp(-np.dot(w[c,:],x[i,:])-0.5))
+                y[c,i] = 1/(1+np.exp(-np.dot(w[c,:],x[i,:])))
         return y
 
     def grad_log_reg(self, x, w): # gradient of logistic regression
         grad_list = [] # gradients for every client
         num_data = x.shape[0]
         num_params = x.shape[1]
-        num_clients = 21
+        num_clients = w.shape[0]
         for c in range(num_clients):
             grad_matrix = np.zeros((num_data, num_params))
             for i in range(num_data):
@@ -199,13 +202,24 @@ class GenGradDescModelNoAnnotations:
 
         return np.sum(y_labels!=y_target)*100/float(len(y_labels))
 
-    def test(self, test_X, test_Y, test_annotation_indices, test_annotations, PARAM_LAMBDA_ANNOTATIONS):
+    def test(self, test_X, test_Y, test_annotation_indices, test_annotations, PARAM_LAMBDA_ANNOTATIONS, method='MLP'):
         data_num, data_dim = test_X.shape
-
-        client_response = self.log_reg(test_X, self.w) # clients x num_data
+        if (method == 'MLP'):
+            test_X_intermediate = self.sigmoid_array(np.dot(test_X, self.mlp_pretrained.coefs_[0]))
+            client_response = self.log_reg(test_X_intermediate, self.w)  # clients x num_data
+        elif (method=='LOGREG'):
+            client_response = self.log_reg(test_X, self.w) # clients x num_data
+        else:
+            pass
         error_count = self.errors_count(client_response, test_Y)
         print "TESTING ACCURACY: {0}%".format((data_num-error_count)*100/data_num)
-        loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
+
+        if (method== 'MLP'):
+            loss = self.cross_entropy_all(test_X_intermediate, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)  ### FIXME FIXME
+        elif (method=='LOGREG'):
+            loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS) ### FIXME FIXME
+        else:
+            pass
         return loss
 
 
