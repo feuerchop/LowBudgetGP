@@ -270,10 +270,10 @@ if __name__=="__main__":
     elif test=='mlp':
         print "Fast test  of mlp with manually assigned parameters"
 
-        PARAM_LAMBDA_ANNOTATIONS = 10000
+        PARAM_LAMBDA_ANNOTATIONS = 1000
         NUM_IT_P = 10
         PARAM_LAMBDA_W = 0.001
-        TIMESTEP = 0.000001
+        TIMESTEP = 0.0001
         PARAM_LAMBDA = 0.00001
         test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP')
 
