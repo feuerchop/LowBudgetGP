@@ -215,9 +215,9 @@ class GenGradDescModelNoAnnotations:
         print "TESTING ACCURACY: {0}%".format((data_num-error_count)*100/data_num)
 
         if (method== 'MLP'):
-            loss = self.cross_entropy_all(test_X_intermediate, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)  ### FIXME FIXME
+            loss = self.cross_entropy_all(test_X_intermediate, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         elif (method=='LOGREG'):
-            loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS) ### FIXME FIXME
+            loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         else:
             pass
         return loss
