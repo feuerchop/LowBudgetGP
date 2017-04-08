@@ -19,7 +19,7 @@ def load_data_uai(data_i):
     # /home/bojan/research/datasets/UAI14_data/class_data_{0}.mat
 
     print data_i
-    f = h5py.File('/home/kolosnjaji/papers/communication_efficient_ensemble_learning/LowBudgetGP/data/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    f = h5py.File('../../../data/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
     labels_list.append(f['L'][:].T)
     data_list.append(f['x'][:].T)
     groundtruth_list.append(f['Y'][:].T)
@@ -111,7 +111,7 @@ def divide_indices_uai(num_cv=2, num_data=3220):
         else:
             max_num = len(random_indices)
 
-        test_indices = random_indices[i*num_test:max_num]
+        test_indices = random_indices[i*num_test:int(max_num)]
         training_indices = []
         for j in range(len(random_indices)):
             if not random_indices[j] in test_indices:
@@ -279,7 +279,7 @@ def test_clustering():
         plt.savefig('plot_cv_{0}.png'.format(data_number))
 
 def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method):
-
+    np.random.seed(42)
     all_data = load_data_synthetic()
     num_cv = 2
     cv_indices = divide_indices_sythetic(all_data, num_cv)
@@ -297,7 +297,7 @@ def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP,
         [n, m] = all_data[0].shape
         random_v = np.random.normal(1, 0.5, num_clients) / num_clients
         random_v = random_v / np.sum(random_v)
-        random_w = np.random.normal(0, 0.05, (num_clients, m))
+        random_w = np.random.normal(0, 0.5, (num_clients, m))
         train_model = GenGradDescModelNoAnnotations(random_w, random_v)
         print "******************TRAINING******************"
         train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=1200,
@@ -310,10 +310,16 @@ def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP,
     print np.mean(loss_cv)
 
 
-def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method):
+def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method, task_id, NUM_IT):
     np.random.seed(42)
     loss_data = []
-    for data_number in range(10): # which dataset
+    start_task = 0
+    end_task = 9
+    if task_id!=10:
+        start_task = task_id
+        end_task = task_id
+
+    for data_number in range(start_task, end_task+1): # which dataset
 
         cv_number = 3
 
@@ -333,7 +339,7 @@ def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_L
             random_w = np.random.normal(0, 0.05, (21,m))
             train_model = GenGradDescModelNoAnnotations(random_w, random_v)
             print "******************TRAINING******************"
-            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=120, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method=method)
+            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=NUM_IT, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method=method)
             print "******************TESTING******************"
             loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3], PARAM_LAMBDA_ANNOTATIONS, method))
             print loss_cv[i]
@@ -341,11 +347,17 @@ def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_L
 
 if __name__=="__main__":
 
-    test = 'synthetic'
+    arg_data = sys.argv[1]
+    arg_method = sys.argv[2]
+    arg_tasks = int(sys.argv[3])
+    arg_iterations = int(sys.argv[4])
+
+    test = arg_data
+    method = arg_method
+
+    task_id = arg_tasks # if task id ==10 >>> test all
 
     if (test == 'real'):
-
-        method = 'logreg'
 
         if (method == 'logreg_all'):
             print "Testing all parameter configurations, takes some days"
@@ -372,7 +384,10 @@ if __name__=="__main__":
             PARAM_LAMBDA_W = 0.0001
             TIMESTEP = 0.0001
             PARAM_LAMBDA = 0.00001
-            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
+            sys.stdout = open(
+                'output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')
+
+            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
 
         elif method=='mlp':
             print "Fast test  of mlp with manually assigned parameters"
@@ -382,20 +397,25 @@ if __name__=="__main__":
             PARAM_LAMBDA_W = 0.001
             TIMESTEP = 0.0001
             PARAM_LAMBDA = 0.00001
-            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP')
+            sys.stdout = open(
+                'output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
+
+            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
 
         else:
             print "Please pick logreg or mlp"
 
     elif (test == 'synthetic'):
-        PARAM_LAMBDA_ANNOTATIONS = 100000
-        NUM_IT_P = 10
-        PARAM_LAMBDA_W = 0.001
-        TIMESTEP = 0.00001
-        PARAM_LAMBDA = 0.00001
+        PARAM_LAMBDA_ANNOTATIONS = 100
+        NUM_IT_P = 5
+        PARAM_LAMBDA_W = 0.000001
+        TIMESTEP = 0.000001
+        PARAM_LAMBDA = 0.0001
         # test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
+        sys.stdout = open(
+            'output_synthetic_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
 
-        test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
+        test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
 
 
 
