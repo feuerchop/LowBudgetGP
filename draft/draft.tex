@@ -10,6 +10,7 @@
 \usepackage{graphicx} % more modern
 %\usepackage{epsfig} % less modern
 \usepackage{subfigure} 
+\usepackage{color}
 %\usepackage{subfig}%[caption=false,font=footnotesize]
 
 % For citations
@@ -35,7 +36,8 @@
 \usepackage{amsmath}
 \newcommand{\cbn}{\textsc{Cbn}}
 \newcommand{\bn}{\textsc{Bn}}
-
+\newcommand{\huang}[1]{\textcolor{blue}{#1}}
+\newcommand{\mycomment}[1]{\textcolor{red}{( ...#1 )}}
 \renewcommand{\algorithmiccomment}[1]{/* #1 */}
 \def\ci{\perp\!\!\!\perp}
 \def\dep{\perp\!\!\!\perp\!\!\!\!\!\!\!/\,\,\,\,}
@@ -91,7 +93,33 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract}
-Learning from multiple sources of labeled data can increase the confidence of a machine learning system, if the expertise of different labelers can efficiently be assembled. However, using a large amount of labelers in the test time can be expensive on the long run. For instance, in crowdsourcing we have to pay each labeler in order to get the annotations. In a scenario of Internet of Things, obtaining data from multiple sensors means high communication overhead. Nevertheless, in many situations a small set of competent experts could already constitute a very accurate labeling system, while keeping a low cost of communication with the labelers. We design a methodology for training a classification system where data labels are obtained from a small set of labelers and the labelers are weighted optimally in order to offer high classification accuracy. We define an optimization procedure where sparsity of the client vector that weighs the labelers is controlled while reducing a classification error. Using this procedure, we obtain results close to the classification performance when using the original set of labelers, while reducing the number of those by over 60\%.  
+Learning from multiple sources of labeled data can increase the confidence of a machine learning system, 
+%if the expertise of different labelers can efficiently \huang{properly} be assembled. 
+however, 
+%using 
+\huang{employing } a large amount of labelers in the test time can be expensive \huang{in} the long run. For instance, in crowdsourcing we have to pay each labeler in order to get the annotations. In 
+% a scenario of 
+Internet-of-Things, 
+obtaining data from multiple sensors \huang{for direct fusion } 
+incurs high communication overhead. 
+%Nevertheless, in many situations a small subset of 
+%%competent experts 
+%data sources could already 
+%%constitute a very accurate labeling system
+%deliver reliable annotations, \huang{thus we reduce the cost of communication with other labelers effectively}. 
+\huang{In this paper}, we 
+%design a methodolojgy
+propose a method for training a classification system 
+%where data labels are obtained from a small set of labelers and the labelers are weighted optimally in order to offer high classification accuracy. 
+\huang{from multiple annotated training data, where only a small subset of labelers are optimally chosen to reduce communication effort.} We define an iterative optimization procedure where the sparsity of a client vector \huang{is computed} to reweigh the labelers 
+%is controlled 
+while reducing the overall classification error. 
+%Using this procedure, 
+\huang{In experiments, we show that our approach 
+%obtain results close to 
+can pertain the classification performance as on the complete set of labelers, while reducing 
+%the number of those 
+the communication effort by over 60\% on several different tasks.}  
 
 
 %submit  abstract until 13.04
