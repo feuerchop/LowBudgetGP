@@ -62,14 +62,14 @@
 %
 \mainmatter              % start of the contributions
 %
-\title{Communication Efficient Learning towards Crowdsourcing Applications}
+\title{ Communication efficient learning from Multiple Experts}
 %
 %\titlerunning{Hamiltonian Mechanics}  % abbreviated title (for running head)
 %                                     also used for the TOC unless
 %                                     \toctitle is used
 %
 \author{Bojan  Kolosnjaji\inst{1} \and Huang Xiao\inst{2} 
-	\and Claudia Eckert\inst{1} }
+	\and Claudia Eckert\inst{1}\inst{2} }
 %Jeffrey Dean \and David Grove \and Craig Chambers \and Kim~B.~Bruce \and
 %Elsa Bertino}
 %
@@ -79,9 +79,8 @@
 %\tocauthor{Ivar Ekeland, Roger Temam, Jeffrey Dean, David Grove,
 %Craig Chambers, Kim B. Bruce, and Elisa Bertino}
 %
-\institute{The great instititue, \\
-	Some where on earth, \\
-\email{yourname@email.com}
+\institute{Technical University of Munich, Fraunhofer AISEC\\
+\email{kolosnjaji@sec.in.tum.de, huang.xiao@aisec.fraunhofer.de, eckert@sec.in.tum.de}
 %\\ WWW home page:
 %\texttt{https://www.aisec.fraunhofer.de/}
 %\and
@@ -94,37 +93,36 @@
 
 \begin{abstract}
 Learning from multiple sources of labeled data can increase the confidence of a machine learning system, 
-%if the expertise of different labelers can efficiently \huang{properly} be assembled. 
-however, 
-%using 
-\huang{employing } a large amount of labelers in the test time can be expensive \huang{in} the long run. For instance, in crowdsourcing we have to pay each labeler in order to get the annotations. In 
-% a scenario of 
+if the expertise of different labelers can be assembled efficiently. However,
+using a large amount of labelers in the test time can be expensive in the long run. For instance, in crowdsourcing we have to pay each labeler in order to get the annotations. In % a scenario of 
 Internet-of-Things, 
-obtaining data from multiple sensors \huang{for direct fusion } 
+obtaining data from multiple sensors for direct fusion 
 incurs high communication overhead. 
 %Nevertheless, in many situations a small subset of 
 %%competent experts 
 %data sources could already 
 %%constitute a very accurate labeling system
-%deliver reliable annotations, \huang{thus we reduce the cost of communication with other labelers effectively}. 
-\huang{In this paper}, we 
+%deliver reliable annotations, 
+
+%Therefore we need to reduce the cost of communication with other labelers effectively}. 
+In this paper, we 
 %design a methodolojgy
 propose a method for training a classification system 
 %where data labels are obtained from a small set of labelers and the labelers are weighted optimally in order to offer high classification accuracy. 
-\huang{from multiple annotated training data, where only a small subset of labelers are optimally chosen to reduce communication effort.} We define an iterative optimization procedure where the sparsity of a client vector \huang{is computed} to reweigh the labelers 
+from data labeled by multiple annotators, where only a small subset of annotators are optimally chosen to reduce communication effort. We define an iterative optimization procedure where the sparsity of a client weight vector is enforced, 
 %is controlled 
 while reducing the overall classification error. 
 %Using this procedure, 
-\huang{In experiments, we show that our approach 
+Using a set of experiments, we show that our approach 
 %obtain results close to 
 can pertain the classification performance as on the complete set of labelers, while reducing 
 %the number of those 
-the communication effort by over 60\% on several different tasks.}  
+the communication effort by over 60\% on several different tasks.
 
 
 %submit  abstract until 13.04
 
-\keywords{key, word, add, here, ...}
+\keywords{machine learning, communication-efficiency, crowdsourcing, Internet-of-Things}
 \end{abstract}
 %
 
