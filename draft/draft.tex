@@ -126,10 +126,45 @@ the communication effort by over 60\% on several different tasks.
 \end{abstract}
 %
 
+\section{Introduction}
+Machine Learning systems depend on our ability to gather a large set of data. In a large number of scenarios, we gather labeled data from multiple separate sources with varying reliability and join this data into one machine learning model. Furthermore, many times we are limited in how many data sources we are allowed to use, because of budget constraints, limited processing power or insufficient communication bandwidth.
+
+First important fitting scenario is crowdsourcing. When using crowdsourcing systems such as Amazon Mechanical Turk, we can gather labelled data from multiple annotators. After gathering this training data, we need to join the labelling decisions and train one machine learning system while leveraging all of the annotations. Relying on a concept of \textit{wisdom of crowds}, we can assume that if we gather data from a sufficient number of people, on average most of them will give correct labelling decision. However, gathering data from a large amount of annotators can be expensive, as workers on Amazon Mechanical Turk require payment for their work. There fore we would benefit from a procedure of prior determination of the expertise of the annotators. In this case, the joining process can be optimized by estimating the expertise of the annotators, selecting the most reliable ones and determining weights of their decisions. 
+
+Moreover, in a rising area of \textit{Internet of Things} (IoT)we can have similar problems. In IoT systems, a large number of sensors provide information about the environment. Communication among multiple sensors can be costly in terms of processing power. Furthermore, this communication can be done among sensors that are limited with power consumption constraints.
+
+There are multiple papers that deal with estimating the expertise of labelers when using \textit{wisdom of crowds}. For example, Welinder et al. \cite{} determine groups of annotators with similar expertise, and find particular phenomena such as "schools of thought" and specialist experts in certain types of image labeling tasks. Tian and Zhu~\cite{} investigate the annotator behavior in executing more complex labeling tasks, such as answering if an image is beautiful or if it contains a car~\cite{}. Zhang et al.~\cite{} propose a method to filter out novice labelers. However, their method is specific to Gaussian Mixture Model. Rodrigues et al.~\cite{} determine a similar procedure specific to Gaussian Processes. Bi et al. argue that the factors that determine the annotators' labeling performance, apart from the expertise, can also be the worker's dedication to the task, his/her default labeling judgement and sample difficulty. However, they do not go further in determining the optimal subset of annotators. On the other hand, Li and Liu~\cite{} propose a combinatiorial procedure to find this optimal subset. However, such combinatorial procedures are very resource-intensive, especially for a large initial set of annotators.
+
+On the other hand, there are are also multiple more theoretical frameworks. For example, Wang et al.~\cite{} propose a selection of sensors based on Directed Acyclic Graphs (DAGs) in resource-constrained scenarios. However, they do not deal with annotating data, so their ideas does not completely fit to our problem. 
+
+We design a methodology that both selects an optimal set of annotators from a set of training data and automatically determines the weights of the selected annotators. By forcing sparsity on our annotator weight vector, we get an accurate classification system that works well even with annotations from a small set of highly competent annotators.
+
+In summary, we make the following contributions:
+\begin{itemize}
+\item We propose a methodology for selecting an optimal subset of workers in a classification system with multiple labelers
+\item We create a procedure for selecting and determine weights of labelers independent of type machine learning methods selected for modeling the annotating process
+\item Using a set of experiments with real and synthetic data, we show that we can obtain accurate classification system with a learned annotator subset.
+\end{itemize}  
+
+
+\section{Methodology}
+
+\section{Results}
+
+\section{Discussion}
+
+
+\section{Conclusion}
+
+
+
+
+
+
 % ---- Bibliography ----
 %
 \bibliographystyle{plain}
-\bibliography{literature} % use this
+\bibliography{draft} % use this
 %\clearpage
 %\addtocmark[2]{Author Index} % additional numbered TOC entry
 %\renewcommand{\indexname}{Author Index}
