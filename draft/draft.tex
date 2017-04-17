@@ -62,7 +62,7 @@
 %
 \mainmatter              % start of the contributions
 %
-\title{ Communication efficient learning from Multiple Experts}
+\title{ Communication-efficient Learning from Multiple Experts}
 %
 %\titlerunning{Hamiltonian Mechanics}  % abbreviated title (for running head)
 %                                     also used for the TOC unless
@@ -92,33 +92,11 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract}
-Learning from multiple sources of labeled data can increase the confidence of a machine learning system, 
-if the expertise of different labelers can be assembled efficiently. However,
-using a large amount of labelers in the test time can be expensive in the long run. For instance, in crowdsourcing we have to pay each labeler in order to get the annotations. In % a scenario of 
-Internet-of-Things, 
-obtaining data from multiple sensors for direct fusion 
-incurs high communication overhead. 
-%Nevertheless, in many situations a small subset of 
-%%competent experts 
-%data sources could already 
-%%constitute a very accurate labeling system
-%deliver reliable annotations, 
+Learning from multiple sources of labeled data can increase the confidence of a machine learning system if the expertise of different labelers can be assembled efficiently. However, using a large amount of labelers in the test time can be expensive in the long run. For instance, in crowdsourcing, we have to pay each labeler in order to get the annotations. In Internet-of-Things, obtaining data from multiple sensors for
+direct fusion incurs high communication overhead. 
 
-%Therefore we need to reduce the cost of communication with other labelers effectively}. 
-In this paper, we 
-%design a methodolojgy
-propose a method for training a classification system 
-%where data labels are obtained from a small set of labelers and the labelers are weighted optimally in order to offer high classification accuracy. 
-from data labeled by multiple annotators, where only a small subset of annotators are optimally chosen to reduce communication effort. We define an iterative optimization procedure where the sparsity of a client weight vector is enforced, 
-%is controlled 
-while reducing the overall classification error. 
-%Using this procedure, 
-Using a set of experiments, we show that our approach 
-%obtain results close to 
-can pertain the classification performance as on the complete set of labelers, while reducing 
-%the number of those 
-the communication effort by over 60\% on several different tasks.
-
+In this paper, we propose a method for training a classification system from data labeled by multiple client annotators, where only a small subset of annotators are optimally chosen to reduce communication effort. 
+We define an iterative optimization procedure where the sparsity of a client weight vector is enforced while reducing the overall classification error. Using a set of experiments, we show that our approach can pertain the classification performance as on the complete set of labelers while reducing the communication effort by over 70\% on several different tasks.
 
 %submit  abstract until 13.04
 
@@ -133,9 +111,9 @@ First important fitting scenario is crowdsourcing. When using crowdsourcing syst
 
 Moreover, in a rising area of \textit{Internet of Things} (IoT)we can have similar problems. In IoT systems, a large number of sensors provide information about the environment. Communication among multiple sensors can be costly in terms of processing power. Furthermore, this communication can be done among sensors that are limited with power consumption constraints.
 
-There are multiple papers that deal with estimating the expertise of labelers when using \textit{wisdom of crowds}. For example, Welinder et al. \cite{} determine groups of annotators with similar expertise, and find particular phenomena such as "schools of thought" and specialist experts in certain types of image labeling tasks. Tian and Zhu~\cite{} investigate the annotator behavior in executing more complex labeling tasks, such as answering if an image is beautiful or if it contains a car~\cite{}. Zhang et al.~\cite{} propose a method to filter out novice labelers. However, their method is specific to Gaussian Mixture Model. Rodrigues et al.~\cite{} determine a similar procedure specific to Gaussian Processes. Bi et al. argue that the factors that determine the annotators' labeling performance, apart from the expertise, can also be the worker's dedication to the task, his/her default labeling judgement and sample difficulty. However, they do not go further in determining the optimal subset of annotators. On the other hand, Li and Liu~\cite{} propose a combinatiorial procedure to find this optimal subset. However, such combinatorial procedures are very resource-intensive, especially for a large initial set of annotators.
+There are multiple papers that deal with estimating the expertise of labelers when using \textit{wisdom of crowds}. For example, Welinder et al. \cite{welinder2010multidimensional} determine groups of annotators with similar expertise, and find particular phenomena such as "schools of thought" and specialist experts in certain types of image labeling tasks. Tian and Zhu~\cite{tian2012learning} investigate the annotator behavior in executing more complex labeling tasks, such as answering if an image is beautiful or if it contains a car. Zhang et al.~\cite{zhang2013learning} propose a method to filter out novice labelers. However, their method is specific to Gaussian Mixture Model. Rodrigues et al.~\cite{rodrigues2014gaussian} determine a similar procedure specific to Gaussian Processes. Bi et al.~\cite{bi2014learning}argue that the factors that determine the annotators' labeling performance, apart from the expertise, can also be the worker's dedication to the task, his/her default labeling judgement and sample difficulty. However, they do not go further in determining the optimal subset of annotators. On the other hand, Li and Liu~\cite{li_liu_2015} propose a combinatiorial procedure to find this optimal subset. However, such combinatorial procedures are very resource-intensive, especially for a large initial set of annotators.
 
-On the other hand, there are are also multiple more theoretical frameworks. For example, Wang et al.~\cite{} propose a selection of sensors based on Directed Acyclic Graphs (DAGs) in resource-constrained scenarios. However, they do not deal with annotating data, so their ideas does not completely fit to our problem. 
+On the other hand, there are are also multiple more theoretical frameworks. For example, Wang et al.~\cite{wang2015efficient} propose a selection of sensors based on Directed Acyclic Graphs (DAGs) in resource-constrained scenarios. However, they do not deal with annotating data, so their ideas does not completely fit to our problem. 
 
 We design a methodology that both selects an optimal set of annotators from a set of training data and automatically determines the weights of the selected annotators. By forcing sparsity on our annotator weight vector, we get an accurate classification system that works well even with annotations from a small set of highly competent annotators.
 
@@ -148,6 +126,72 @@ In summary, we make the following contributions:
 
 
 \section{Methodology}
+
+Our methodology is based on the scenario drawn on the \autoref{fig:scheme}. This scheme shows a common situation when a server gets labells from multiple annotators. 
+
+\begin{figure}
+  \caption{Label aggregation scheme}
+  \centering
+    \includegraphics[width=0.5\textwidth]{figures/lowbudget.pdf}
+  \label{fig:scheme}
+\end{figure}
+
+In training time, server forwards data to all the clients in order to retrieve annotations. Using the data annotated from a large set of clients, server trains a machine learning model that jointly learns the expertise of all the clients while minimizing the quadratic loss with respect to the ground truth.  
+
+We design a method that would enable us to manage the tradeoff between model accuracy and communication effort. Furthermore, we impose a requirement that our methodology needs to be simple and compatible with a wide range of machine learning methods. 
+
+Based on these requirements, our optimization model has a cost function consisting of three parts:
+
+\begin{enumerate}
+\item minimizing the error with respect to the ground truth
+\item minimizing the error with respect ot the client annotations
+\item making the client weight vector sparse 
+\end{enumerate}
+
+For example, the cost function for logistic regression looks like the following:
+
+$$ L(w,v)= -\frac{1}{N} \sum_{n=1}^N (y_n \log \sum_{i=1}^M v_i\hat{y}_{ni} + (1-y_n) \log(1-\sum_{i=1}^M v_i \hat{y}_{ni})) + \psi \sum_{i=1}^{M} (y_{ni} - z_{ni})^2+\lambda \mid v \mid$$
+
+$$ \sum_{i=1}^{M} v_i = 1 $$
+
+where $y_n$ are ground truth labels for all training samples, $\hat{y}_{ni}$ are labels retrieved by querying  current client models, $z_{ni}$ are training labels from annotator clients, $v_i$ is a normalized vector of weights for all the clients.  
+
+We want to use $L_1$ regularization to minimize the client weight vector. This is similar to the \textit{Lasso} feature selection, except that we select clients instead of features. 
+
+The gradient is defined with the following equations:
+
+$$ \frac{\partial L}{\partial w_j} = -\frac{1}{N} \sum_{n=1}^N (y_n \frac{1}{\sum_{i=1}^M v_i \hat{y}_{ni}} v_j \frac{\partial y_n}{\partial w_j} + (1-y_n) \frac{1}{1-\sum_{i=1}^M } v_j \frac{\partial y_n}{\partial w_j} + \psi \sum_{i=1}^M 2 (y_{ni} - z_{ni} \frac{\partial y_n}{\partial w_j}  ))$$
+
+$$ \frac{\partial L}{\partial v_i} =  -\frac{1}{N} \sum_{n=1}^N (y_n \frac{1}{\sum_{i=1}^M v_i y_{ni}} + (1-\hat{y_n}) \frac{1} {1-\sum_{i=1}^M v_i y_{ni}} (-y_n) $$
+
+The expression for the gradient $ \frac{y_n}{w_j}$ depends on the concrete method used to model the annotators.
+
+ 
+
+
+For logistic regression we directly define the cost for the errors with respect to ground truth as crossentropy. However, with minimal changes our framework can also be usable with other machine learning methods. For example, we tested our methodology with neural networks as well. These methods, however, need to be convex or have a convex relaxation in order to still make a gradient-based optimization procedure work well.
+
+In order to still use gradient descent as a convex optimization method with the $L_1$ norm, we use the method of subgradient when updating the value of $v$. The update that we derived is the following:
+
+$$ v= v + S_{\lambda} (x-t_s \frac{y_n}{v}, \lambda)$$
+
+where
+$$ S_{\lambda} = 
+\left\{
+	\begin{array}{ll}
+		x-\lambda  & \mbox{if } x > \lambda  \\
+		x+\lambda & \mbox{if } x < -\lambda \\
+		0 & \mbox{otherwise}
+	\end{array}
+\right.
+$$
+
+Furthermore, we normalize the values in the vector $v$ in order to retrieve the proper values of client weights:
+
+$$ v = \frac{v}{\sum_{i=1}^M v_i} $$
+
+
+ 
 
 \section{Results}
 

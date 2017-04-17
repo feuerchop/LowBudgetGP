@@ -1,7 +1,7 @@
 clc;clear;close all;
 % also need libsvm for SVR
-addpath('~/Documents/lightspeed/');
-addpath('~/Documents/lbfgs/');
+%addpath('~/Documents/lightspeed/');
+%addpath('~/Documents/lbfgs/');
 N=50;
 D=1;
 M=21;
@@ -37,12 +37,13 @@ for m=1:M
 end
 ['figure']
 figure(1)
-
+hold on
 subplot(5,1,1);
 % draw syn data
-plot(Xt,sigmoid(normaltoUnit(g(Xt))),'k-','linewidth',2)
+plot(Xt,normaltoUnit(g(Xt)),'k-','linewidth',2)
 Z_sigmoid = sigmoid(normaltoUnit(g(Xt)));
 hold all;
+label_equality = []
 for m=1:M
     Yt(:,1,m)=randnorm(1,expert_func{m}(Zt),s_g(m));
     Y_sigmoid(:,1,m)=sigmoid(Yt(:,1,m));
@@ -51,8 +52,9 @@ for m=1:M
     %plot(X,sigmoid(expert_func{m}(Z)), '-')
     %normaltoUnit(Y(:,1,m))
     %sigmoid(normaltoUnit(Y(:,1,m)))
-    plot(Xt,normaltoUnit(Y_sigmoid(:,1,m)), '.-')
-    sum(Z_sigmoid==Y_sigmoid(:,1,m))/size(Z_sigmoid,1)
+    plot(Xt,normaltoUnit(Yt(:,1,m)), '.-')
+    equality = sum(Z_sigmoid==Y_sigmoid(:,1,m))/size(Z_sigmoid,1);
+    label_equality = [label_equality, equality];
     pause()
     
 end
@@ -82,7 +84,7 @@ Y_labels(Y_labels<=0.5)= 0;
 Z_labels(Z_labels>0.5) = 1;
 Z_labels(Z_labels<=0.5)= 0;
 
-save('/home/kolosnjaji/papers/communication_efficient_ensemble_learning/LowBudgetGP/data/data_in', 'Xt','Y_sigmoid','Z_sigmoid', 'Y_labels', 'Z_labels')
+save('/home/bojan/research/papers/communication-efficient-learning/LowBudgetGP/data/data_in', 'Xt','Y_sigmoid','Z_sigmoid', 'Y_labels', 'Z_labels')
 %%
 % Set up model
 % Train using the full training conditional (i.e. no approximation.)
