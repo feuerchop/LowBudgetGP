@@ -9,6 +9,8 @@ from sklearn.metrics import log_loss
 from optimization_no_annotations import GenGradDescModelNoAnnotations
 import sys
 import scipy.io as sio
+import ConfigParser
+import pickle
 
 
 def load_data_uai(data_i):
@@ -19,7 +21,10 @@ def load_data_uai(data_i):
     # /home/bojan/research/datasets/UAI14_data/class_data_{0}.mat
 
     print data_i
-    f = h5py.File('../../../data/UAI14_data/class_data_{0}.mat'.format(data_i), 'r')
+    config = ConfigParser.ConfigParser()
+    config.readfp(open('params.conf'))
+    data_path = config.get('General', 'DATA_PATH')
+    f = h5py.File(data_path + '/class_data_{0}.mat'.format(data_i), 'r')
     labels_list.append(f['L'][:].T)
     data_list.append(f['x'][:].T)
     groundtruth_list.append(f['Y'][:].T)
@@ -33,6 +38,7 @@ def load_data_uai(data_i):
 
 def load_data_synthetic():
     data_in = sio.loadmat('../../data/data_in.mat')
+    #print "Max: {0}".format(np.max(data_in))
     num_clients = np.size(data_in['Y_sigmoid'],2)
     all_data = []
     all_data.append(data_in['Xt']) # x
@@ -45,7 +51,31 @@ def load_data_synthetic():
 
     return all_data
 
-def divide_indices_sythetic(all_data, num_cv=2):
+def load_data_mnist():
+    print "trying to load data..."
+    data_in = sio.loadmat('../../data/mnist_dict_annotations_10.mat')
+    print "Max: {0}".format(np.max(data_in['X']))
+    print "mat file loaded"
+    num_clients = np.size(data_in['y_annotations'],0)
+    print num_clients
+    all_data = []
+    all_data.append(data_in['X'])
+    all_data.append(data_in['y'])
+    all_data.append([])
+    all_data.append([])
+    for i in range(num_clients):
+        all_data[2].append(range(0, len(data_in['X'])))
+        all_data[3].append(data_in['y_annotations'][i,:])
+
+    return all_data
+
+def divide_indices_mnist(all_data, num_cv=2):
+    num_data = np.size(all_data[0], 0)
+    print "dividing indices..."
+    divide_indices = divide_indices_uai(num_cv, num_data)
+    return divide_indices
+
+def divide_indices_synthetic(all_data, num_cv=2):
     num_data = np.size(all_data[0], 0)
     divide_indices = divide_indices_uai(num_cv, num_data)
     return divide_indices
@@ -221,9 +251,6 @@ def divide_data_uai(my_data, my_gt, my_labels, cv_indices, i): # 3220x2400, 21x2
     test_data = [X_test, gt_test]
     return [training_data, test_data]
 
-
-
-
 def test_clustering():
 
     mean_errors_all = []
@@ -282,7 +309,8 @@ def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP,
     np.random.seed(42)
     all_data = load_data_synthetic()
     num_cv = 2
-    cv_indices = divide_indices_sythetic(all_data, num_cv)
+    cv_indices = divide_indices_synthetic(all_data, num_cv)
+
     loss_cv = []
     num_clients = len(all_data[2])
     for test_i in range(num_cv):
@@ -309,6 +337,69 @@ def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP,
         print loss_cv[test_i]
     print np.mean(loss_cv)
 
+def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method, task_id, arg_iterations):
+    np.random.seed(1337)
+    all_data = load_data_mnist()
+    print "data loaded"
+    num_cv = 2
+    cv_indices = divide_indices_mnist(all_data, num_cv)
+    print "indices divided"
+    loss_cv = []
+    num_clients = len(all_data[2])
+    for test_i in range(num_cv):
+        print "Test {0}".format(test_i)
+        training_data, test_data = divide_data_synthetic(all_data, cv_indices, test_i)
+
+#        training_data[1] = np.where(training_data[1]>0.5, 1, 0)
+
+#        for cl_i in range(num_clients):
+#            training_data[3][cl_i] = np.where(np.array(training_data[3][cl_i]) > 0.5, 1, 0)
+
+        [n, m] = all_data[0].shape
+        random_v = np.random.normal(1, 0.5, num_clients) / num_clients
+        random_v = random_v / np.sum(random_v)
+        num_classes = 10
+        multiclass = True
+
+        if (multiclass):
+            random_w = np.random.normal(0, 0.005, (num_clients, m, num_classes))
+        else:
+            random_w = np.random.normal(0, 0.5, (num_clients, m))
+        train_model = GenGradDescModelNoAnnotations(random_w, random_v, multiclass=True, num_classes=10)
+        print "Converting inputs to binary..."
+        y_gt_train = np.zeros((np.size(training_data[1],0), num_classes))
+        y_annotations_train = []
+        for i in range(np.size(training_data[1],0)):
+            y_gt_train[i,training_data[1][i][0]] = 1
+        for c in range(len(training_data[3])):
+            len_dat = np.size(training_data[3][c])
+            y_annot = np.zeros((len_dat,num_classes))
+            for i in range(len_dat):
+                y_annot[i,int(training_data[3][c][i])] = 1
+            y_annotations_train.append(y_annot)
+
+        y_gt_test = np.zeros((np.size(test_data[1],0), num_classes))
+        y_annotations_test = []
+        for i in range(np.size(test_data[1],0)):
+            y_gt_test[i, test_data[1][i][0]] = 1
+        for c in range(len(test_data[3])):
+            len_dat = np.size(test_data[3][c])
+            y_annot = np.zeros((len_dat,num_classes))
+            for i in range(len_dat):
+                y_annot[i, int(test_data[3][c][i])] = 1
+            y_annotations_test.append(y_annot)
+
+        
+        print "******************TRAINING******************"
+        train_model.optimization(training_data[0], y_gt_train, training_data[2], y_annotations_train, NUM_IT=arg_iterations,
+                                 NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W=PARAM_LAMBDA_W,
+                                 PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA,
+                                 TIMESTEP=TIMESTEP, method=method)
+        print "******************TESTING******************"
+        loss_cv.append(train_model.test(test_data[0], y_gt_test, test_data[2], y_annotations_test, PARAM_LAMBDA_ANNOTATIONS, method))
+        print loss_cv[test_i]
+    print np.mean(loss_cv)
+
 
 def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method, task_id, NUM_IT):
     np.random.seed(42)
@@ -318,10 +409,10 @@ def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_L
     if task_id!=10:
         start_task = task_id
         end_task = task_id
-
+    task_results = []
     for data_number in range(start_task, end_task+1): # which dataset
 
-        cv_number = 3
+        cv_number = 5
 
         (X,L,Y) = load_data_uai(data_number+1)
 
@@ -329,21 +420,26 @@ def test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_L
         loss_cv = []
 
         print "TEST: {0}".format(data_number+1)
-
+        tests = []
         for i in range(cv_number):
 
             (training_data, test_data) = divide_data_uai_no_annotations(X,L,Y,indices,i)
             [n,m] = X.shape
-            random_v = np.random.normal(1,0.5, 21)/21
+            random_v = np.random.normal(1,0.3, 21)/21
             random_v = random_v/np.sum(random_v)
-            random_w = np.random.normal(0, 0.05, (21,m))
+
+            random_w = np.random.normal(0, 0.005, (21,m))
             train_model = GenGradDescModelNoAnnotations(random_w, random_v)
             print "******************TRAINING******************"
-            train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=NUM_IT, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method=method)
+            [train_loss, v_nonzero, error_percentage] = train_model.optimization(training_data[0], training_data[1], training_data[2], training_data[3], NUM_IT=NUM_IT, NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W = PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method=method)
             print "******************TESTING******************"
             loss_cv.append(train_model.test(test_data[0], test_data[1], test_data[2], test_data[3], PARAM_LAMBDA_ANNOTATIONS, method))
             print loss_cv[i]
+            #pickle.dump((train_loss, v_nonzero, error_percentage), open("iterations_out.bin", "wb+"))
+            tests.append((train_loss, v_nonzero, error_percentage, loss_cv[i]))
+        task_results.append(tests)
         loss_data.append(np.mean(loss_cv))
+    return task_results
 
 if __name__=="__main__":
 
@@ -351,6 +447,8 @@ if __name__=="__main__":
     arg_method = sys.argv[2]
     arg_tasks = int(sys.argv[3])
     arg_iterations = int(sys.argv[4])
+    if (len(sys.argv)>5):
+        arg_lambda = float(sys.argv[5])
 
     test = arg_data
     method = arg_method
@@ -384,21 +482,21 @@ if __name__=="__main__":
             PARAM_LAMBDA_W = 0.0001
             TIMESTEP = 0.0001
             PARAM_LAMBDA = 0.00001
-            sys.stdout = open(
-                'output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')
-
-            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
-
+            if (len(sys.argv)>4):
+                PARAM_LAMBDA = arg_lambda
+            #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')
+            print "Test..."
+            task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
+            pickle.dump(task_results, open("results_{0}.bin".format(PARAM_LAMBDA), 'wb+'))
         elif method=='mlp':
             print "Fast test  of mlp with manually assigned parameters"
 
             PARAM_LAMBDA_ANNOTATIONS = 1000
             NUM_IT_P = 10
-            PARAM_LAMBDA_W = 0.001
-            TIMESTEP = 0.0001
-            PARAM_LAMBDA = 0.00001
-            sys.stdout = open(
-                'output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
+            PARAM_LAMBDA_W = 0.00001
+            TIMESTEP = 0.0000000001
+            PARAM_LAMBDA = 0.000000001
+            #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
 
             test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
 
@@ -409,13 +507,26 @@ if __name__=="__main__":
         PARAM_LAMBDA_ANNOTATIONS = 100
         NUM_IT_P = 5
         PARAM_LAMBDA_W = 0.000001
-        TIMESTEP = 0.000001
-        PARAM_LAMBDA = 0.0001
+        TIMESTEP = 0.00000001
+        PARAM_LAMBDA = 0.000001
         # test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
         sys.stdout = open(
             'output_synthetic_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
 
         test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
+
+    elif (test =='mnist'):
+        print "testing mnist..."
+        PARAM_LAMBDA_ANNOTATIONS = 1000
+        NUM_IT_P = 5
+        PARAM_LAMBDA_W = 0.0001
+        TIMESTEP = 0.00001
+        PARAM_LAMBDA = 0.00001
+        # test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
+        #sys.stdout = open(
+        #    'output_mnist_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
+
+        test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
 
 
 
