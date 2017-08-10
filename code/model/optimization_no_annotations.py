@@ -5,12 +5,13 @@ from sklearn.neural_network.multilayer_perceptron import MLPClassifier
 
 class GenGradDescModelNoAnnotations:
 
-    def __init__(self, w_init, v_init, multiclass=False, num_classes=10):
+    def __init__(self, w_init, v_init, multiclass=False, num_classes=10, stochastic=False):
         self.w = w_init
         self.v = v_init
         self.num_clients = self.w.shape[0]
         self.multiclass = multiclass
         self.num_classes = num_classes
+        self.stochastic = stochastic
         #self.PARAM_LAMBDA = 0.0001
 
     @staticmethod
@@ -53,7 +54,7 @@ class GenGradDescModelNoAnnotations:
     def grad_update(self,x, my_grad, TIMESTEP): # for each vector # optimization of v
         return self.slambda(x-TIMESTEP*my_grad,self.PARAM_LAMBDA)
 
-    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT, NUM_IT_P, PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA, TIMESTEP, method='LOGREG'):
+    def optimization(self,x,y_target, y_client_annotation_indices, y_client_annotations, NUM_IT, NUM_IT_P, PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA, TIMESTEP, method='LOGREG', stochastic_size=0):
 
         train_loss = []
         v_nonzero = []
@@ -82,10 +83,16 @@ class GenGradDescModelNoAnnotations:
             #print "Optimizing w..."
             for j in range(NUM_IT_P):
                 # print j
+                if (self.stochastic):
+                    num_data = np.size(x,0)
+                    stochastic_subset = np.random.randint(0, num_data, int(stochastic_size))
+                else:
+                    stochastic_subset=[]
+
                 if (method=="MLP"):
                     grad_w = self.grad_ce_w(self.x_intermediate, y_target, y_client_annotations, y_client_annotation_indices, self.w, self.v, PARAM_LAMBDA_ANNOTATIONS)
                 else:
-                    grad_w = self.grad_ce_w(x,y_target, y_client_annotations, y_client_annotation_indices, self.w,self.v, PARAM_LAMBDA_ANNOTATIONS)
+                    grad_w = self.grad_ce_w(x,y_target, y_client_annotations, y_client_annotation_indices, self.w,self.v, PARAM_LAMBDA_ANNOTATIONS, stochastic_subset)
                 #print "Grad W: pos: {0} neg: {1} zero: {2}".format(np.sum(grad_w>0), np.sum(grad_w<0), np.sum(grad_w==0))
                 self.w = self.w - grad_w*PARAM_LAMBDA_W;
                 #print "W:\n" + str(self.w)
@@ -93,10 +100,17 @@ class GenGradDescModelNoAnnotations:
             for j in range(NUM_IT_P):
                 #print "V:\n{0}".format(self.v * 100)
                 # print j
+
+                if (self.stochastic):
+                    stochastic_subset = np.random.randint(0, num_data, int(stochastic_size))
+                else:
+                    stochastic_subset = []
+                
+
                 if (method=='MLP'):
                     grad_v = self.grad_ce_v(self.x_intermediate, y_target, self.w, self.v)
                 else:
-                    grad_v = self.grad_ce_v(x,y_target,self.w,self.v)
+                    grad_v = self.grad_ce_v(x,y_target,self.w,self.v, stochastic_subset)
                 #print self.v
                 self.v = self.grad_update(self.v,grad_v, TIMESTEP=TIMESTEP)
                 #self.v = self.v - grad_v*TIMESTEP
@@ -202,10 +216,11 @@ class GenGradDescModelNoAnnotations:
                 sum_exp=0
                 exp_list = [] # np.zeros((num_data,num_params))
                 for k in range(self.num_classes):
-#                    print "{0} {1}".format(self.w[c,:,x].shape, x.shape)
+                    if (np.isnan(np.max(w[c,:,k])) or np.isnan(np.min(w[c,:,k]))):
+                        print "NaN!"
+                        exit(-1)
                     exp_1 = np.exp(x*self.w[c,:,k])
                     exp_list.append(exp_1)
-                    #exp_1 = np.expand_dims(exp_1,1)
                     sum_exp+=exp_1
 
                 for k in range(self.num_classes):
@@ -222,10 +237,15 @@ class GenGradDescModelNoAnnotations:
                 grad_list.append(grad_matrix)
         return grad_list # return list of gradients for every client
 
-    def grad_ce_w(self,x, y_target, y_client_annotations, y_client_annotation_indices, w,v,PARAM_LAMBDA_ANNOTATIONS): # return vector size(w)
+    def grad_ce_w(self,x, y_target, y_client_annotations, y_client_annotation_indices, w,v,PARAM_LAMBDA_ANNOTATIONS, stochastic_subset): # return vector size(w)
         num_data = x.shape[0]
         num_clients = w.shape[0]
         num_params = w.shape[1]
+
+        if (self.stochastic):
+            y_target = y_target[stochastic_subset,:]
+            x = x[stochastic_subset,:]
+            num_data = len(stochastic_subset)
 
 
         if (self.multiclass):
@@ -236,14 +256,22 @@ class GenGradDescModelNoAnnotations:
             y = self.log_reg(x,w) # num_clients x num_data x num_classes
             for c in range(num_clients):
                 for n in range(num_data):
-                    sum_cl = np.dot(v,y[:,n,:])
                     for k in range(self.num_classes):
-                        sum_grad[c,:,k] += y_target[n,k]*(1/sum_cl)*v[c]*y_gradients[c][n,:,k]
+                        sum_cl = np.dot(v,y[:,n,k])
+                        sum_grad[c,:,k] += y_target[n,k]*(1/sum_cl)*v[c]*y_gradients[c][k][n,:]
                 cl_indices_list = y_client_annotation_indices[c]
                 for i, ind in enumerate(cl_indices_list):
-                    for k in range(self.num_classes):
-                        sum_grad_annotations[c, :,k] += 2 * (y[c, ind,k] - y_client_annotations[c][i,k]) * y_gradients[c][k][ind,:]  # additional gradient
-                    num_points += 1
+                    if (self.stochastic and (ind in stochastic_subset)):
+                        for k in range(self.num_classes):
+                            sum_grad_annotations[c, :,k] += 2 * (y[c, np.where(stochastic_subset==ind)[0][0],k] - y_client_annotations[c][i,k]) * y_gradients[c][k][np.where(stochastic_subset==ind)[0][0],:]  # additional gradient
+                        num_points += 1
+                    elif (not self.stochastic):
+                        for k in range(self.num_classes):
+                            sum_grad_annotations[c, :,k] += 2 * (y[c, ind,k] - y_client_annotations[c][i,k]) * y_gradients[c][k][ind,:]  # additional gradient                                                                     num_points += 1
+                    else:
+                        pass
+
+
 
             sum_grad = -(sum_grad / num_data) + sum_grad_annotations * PARAM_LAMBDA_ANNOTATIONS / float(num_points)
 
@@ -261,23 +289,34 @@ class GenGradDescModelNoAnnotations:
                 cl_indices_list = y_client_annotation_indices[c]
 
                 for i,ind in enumerate(cl_indices_list):
-                    sum_grad_annotations[c,:] += 2*(y[c,ind]-y_client_annotations[c][i]) * y_gradients[c][ind,:] # additional gradient
-                    num_points+=1
+                    if (self.stochastic and (ind in stochastic_subset)):
+                        sum_grad_annotations[c,:] += 2*(y[c,np.where(stochastic_subset==ind)[0][0]]-y_client_annotations[c][i])*y_gradients[c][np.where(stochastic_subset==ind)[0][0],:]
+                        num_points+=1
+                    elif (not self.stochastic):
+                        sum_grad_annotations[c,:] += 2*(y[c,ind]-y_client_annotations[c][i]) * y_gradients[c][ind,:] # additional gradient
+                        num_points+=1
+                    else:
+                        pass
             sum_grad = -(sum_grad/num_data) + sum_grad_annotations*PARAM_LAMBDA_ANNOTATIONS/float(num_points)
         return sum_grad
 
-    def grad_ce_v(self,x,y_target,w,v): # return vector, size(v) = number of clients
+    def grad_ce_v(self,x,y_target,w,v, stochastic_subset): # return vector, size(v) = number of clients
 
         y = self.log_reg(x,w)
         num_data = x.shape[0]
         num_clients = w.shape[0]
+
+        if (self.multiclass):                                                                                                                                                                            
+            y_target = y_target[stochastic_subset,:]                                                                                                                                                              
+            x = x[stochastic_subset,:]                                                                                                                                                                     
+            num_data = len(stochastic_subset)
+               
+
         if (self.multiclass):
             sum_grad = np.zeros(num_clients)
             for n in range(num_data):
                 for k in range(self.num_classes):
                     sum_cl = np.dot(v, y[:, n,k])
-                #print y_target.shape
-                #print y.shape
                     sum_grad += y_target[n,k] * (1 / sum_cl) * y[:, n,k]
 
 
@@ -287,8 +326,6 @@ class GenGradDescModelNoAnnotations:
                 sum_cl = np.dot(v, y[:, n])
                 #sum_grad += y_target[n]*(1/sum_cl)*np.log(y[:,n]) + (1-y_target[n]) * (1/(1-sum_cl))*np.log(1-y[:,n])
                 sum_grad += y_target[n]*(1/sum_cl)*y[:,n] + (1-y_target[n]) * (1/(1-sum_cl))*(-y[:,n])
-                #print "V:" + str(v)
-                #print "Y:" + str(y)
 
         return -sum_grad
 
@@ -301,8 +338,6 @@ class GenGradDescModelNoAnnotations:
                 label = np.argmax(np.dot(self.v,y[:,n]))
                 y_labels[n] = label
                 y_target_decimal[n] = np.argmax(y_target[n,:])
-#                print y_labels[n]
-#                print y_target_decimal[n]
             return np.sum(y_labels!=y_target_decimal)*100/float(len(y_labels))
             
             
@@ -313,7 +348,7 @@ class GenGradDescModelNoAnnotations:
                 if label_float>0.5:
                     y_labels[n] = 1
                     
-
+                    
             return np.sum(y_labels!=y_target)*100/float(len(y_labels))
 
     def test(self, test_X, test_Y, test_annotation_indices, test_annotations, PARAM_LAMBDA_ANNOTATIONS, method='MLP'):
@@ -325,8 +360,8 @@ class GenGradDescModelNoAnnotations:
             client_response = self.log_reg(test_X, self.w) # clients x num_data
         else:
             pass
-        error_count = self.errors_count(client_response, test_Y)
-        print "TESTING ACCURACY: {0}%".format((data_num-error_count)*100/data_num)
+        error_count = self.errors_count(client_response, test_Y) # percentage
+        print "TESTING ACCURACY: {0}%".format(100-error_count)
 
         if (method== 'MLP'):
             loss = self.cross_entropy_all(test_X_intermediate, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
@@ -334,7 +369,8 @@ class GenGradDescModelNoAnnotations:
             loss = self.cross_entropy_all(test_X, client_response, test_Y, test_annotations, test_annotation_indices, PARAM_LAMBDA_ANNOTATIONS)
         else:
             pass
-        return (data_num-error_count)*100/data_num
+        print "Data num:{0}".format(data_num)
+        return 100-error_count
 
 
 
