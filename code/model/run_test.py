@@ -491,18 +491,20 @@ if __name__=="__main__":
             #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')
             print "Test..."
             task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
-            pickle.dump(task_results, open("results_{0}.bin".format(PARAM_LAMBDA), 'wb+'))
+            pickle.dump(task_results, open("results_logreg_{0}.bin".format(PARAM_LAMBDA), 'wb+'))
         elif method=='mlp':
             print "Fast test  of mlp with manually assigned parameters"
 
             PARAM_LAMBDA_ANNOTATIONS = 1000
             NUM_IT_P = 10
-            PARAM_LAMBDA_W = 0.00001
-            TIMESTEP = 0.0000000001
-            PARAM_LAMBDA = 0.000000001
+            PARAM_LAMBDA_W = 0.0001
+            TIMESTEP = 0.000001
+            PARAM_LAMBDA = 0.00001
             #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
 
-            test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
+            task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
+            pickle.dump(task_results, open("results_mlp_{0}.bin".format(PARAM_LAMBDA), 'wb+'))
+
 
         else:
             print "Please pick logreg or mlp"
