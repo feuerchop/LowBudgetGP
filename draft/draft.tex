@@ -92,28 +92,25 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract}
-Learning from multiple sources of labeled data can increase the confidence of a machine learning system if the expertise of different labelers can be assembled efficiently. However, using a large amount of labelers in the test time can be expensive in the long run. For instance, in crowdsourcing, we have to pay each labeler in order to get the annotations. In Internet-of-Things, obtaining data from multiple sensors for
-direct fusion incurs high communication overhead. 
+Learning from multiple sources of labeled data can increase the confidence of a machine learning system if the expertise of different labelers can be assembled efficiently. However, using a large amount of labelers in the test time can be expensive in the long run. For instance, in crowdsourcing, we have to pay each labeler in order to get the annotations. In Internet-of-Things, obtaining data from multiple sensors for direct fusion incurs high communication overhead. 
 
 In this paper, we propose a method for training a classification system from data labeled by multiple client annotators, where only a small subset of annotators are optimally chosen to reduce communication effort. 
-We define an iterative optimization procedure where the sparsity of a client weight vector is enforced while reducing the overall classification error. Using a set of experiments, we show that our approach can pertain the classification performance as on the complete set of labelers while reducing the communication effort by over 70\% on several different tasks.
-
-%submit  abstract until 13.04
+We define an iterative optimization procedure where the sparsity of a client weight vector is enforced while reducing the overall classification error. Using a set of experiments with real and synthetic data, we show that our approach can pertain the classification performance as on the complete set of labelers while reducing the communication effort by over 70\% on several different tasks.
 
 \keywords{machine learning, communication-efficiency, crowdsourcing, Internet-of-Things}
 \end{abstract}
 %
 
 \section{Introduction}
-Machine Learning systems depend on our ability to gather a large set of data. In a large number of scenarios, we gather labeled data from multiple separate sources with varying reliability and join this data into one machine learning model. Furthermore, many times we are limited in how many data sources we are allowed to use, because of budget constraints, limited processing power or insufficient communication bandwidth.
+Supervised machine learning depends on our ability to gather a large set of labeled data. In a large number of scenarios, we can benefit from labeled data gathered by querying multiple separate sources with varying reliability and join this data into one machine learning model. However, many times we are limited in the number of data sources that we are allowed to use, because of budget constraints, limited processing power or insufficient communication bandwidth. This causes the need for a framework that would enable resource-efficient combination of labeled data from multiple sources.
 
-First important fitting scenario is crowdsourcing. When using crowdsourcing systems such as Amazon Mechanical Turk, we can gather labelled data from multiple annotators. After gathering this training data, we need to join the labelling decisions and train one machine learning system while leveraging all of the annotations. Relying on a concept of \textit{wisdom of crowds}, we can assume that if we gather data from a sufficient number of people, on average most of them will give correct labelling decision. However, gathering data from a large amount of annotators can be expensive, as workers on Amazon Mechanical Turk require payment for their work. There fore we would benefit from a procedure of prior determination of the expertise of the annotators. In this case, the joining process can be optimized by estimating the expertise of the annotators, selecting the most reliable ones and determining weights of their decisions. 
+First important fitting scenario to this framework is crowdsourcing. When using crowdsourcing systems such as Amazon Mechanical Turk, we can gather labelled data from multiple annotators. After gathering this training data, we need to join the labelling decisions and train one machine learning system while leveraging all of the annotations. Relying on a concept of \textit{wisdom of crowds}, we can assume that if we gather data from a sufficient number of people, on average most of them will give correct labelling decision. However, gathering data from a large amount of annotators can be expensive, as workers on Amazon Mechanical Turk require payment for their work. Therefore we would benefit from a procedure of prior determination of the annotators' expertise. In this case, the joining process can be optimized by estimating the expertise of the annotators, selecting the optimal subset and determining weights of the annotators' labels. 
 
-Moreover, in a rising area of \textit{Internet of Things} (IoT)we can have similar problems. In IoT systems, a large number of sensors provide information about the environment. Communication among multiple sensors can be costly in terms of processing power. Furthermore, this communication can be done among sensors that are limited with power consumption constraints.
+Moreover, in a rising area of \textit{Internet of Things} (IoT) we can have similar problems. In IoT systems, a large number of sensors provide information about the environment. Communication among multiple sensors can be costly in terms of processing power. Furthermore, this communication can be done among sensors that are limited with power consumption constraints.
 
 There are multiple papers that deal with estimating the expertise of labelers when using \textit{wisdom of crowds}. For example, Welinder et al. \cite{welinder2010multidimensional} determine groups of annotators with similar expertise, and find particular phenomena such as "schools of thought" and specialist experts in certain types of image labeling tasks. Tian and Zhu~\cite{tian2012learning} investigate the annotator behavior in executing more complex labeling tasks, such as answering if an image is beautiful or if it contains a car. Zhang et al.~\cite{zhang2013learning} propose a method to filter out novice labelers. However, their method is specific to Gaussian Mixture Model. Rodrigues et al.~\cite{rodrigues2014gaussian} determine a similar procedure specific to Gaussian Processes. Bi et al.~\cite{bi2014learning}argue that the factors that determine the annotators' labeling performance, apart from the expertise, can also be the worker's dedication to the task, his/her default labeling judgement and sample difficulty. However, they do not go further in determining the optimal subset of annotators. On the other hand, Li and Liu~\cite{li_liu_2015} propose a combinatiorial procedure to find this optimal subset. However, such combinatorial procedures are very resource-intensive, especially for a large initial set of annotators.
 
-On the other hand, there are are also multiple more theoretical frameworks. For example, Wang et al.~\cite{wang2015efficient} propose a selection of sensors based on Directed Acyclic Graphs (DAGs) in resource-constrained scenarios. However, they do not deal with annotating data, so their ideas does not completely fit to our problem. 
+On the other hand, there are are also multiple more theoretical frameworks. For example, Wang et al.~\cite{wang2015efficient} propose a selection of sensors based on Directed Acyclic Graphs (DAGs) in resource-constrained scenarios. However, they do not deal with annotating data, so their ideas do not completely fit to our problem. 
 
 We design a methodology that both selects an optimal set of annotators from a set of training data and automatically determines the weights of the selected annotators. By forcing sparsity on our annotator weight vector, we get an accurate classification system that works well even with annotations from a small set of highly competent annotators.
 
@@ -121,7 +118,7 @@ In summary, we make the following contributions:
 \begin{itemize}
 \item We propose a methodology for selecting an optimal subset of workers in a classification system with multiple labelers
 \item We create a procedure for selecting and determine weights of labelers independent of type machine learning methods selected for modeling the annotating process
-\item Using a set of experiments with real and synthetic data, we show that we can obtain accurate classification system with a learned annotator subset.
+\item Using a set of experiments with real and synthetic data, we show that we can obtain accurate classification system with the learned annotator subset.
 \end{itemize}  
 
 
@@ -182,15 +179,15 @@ For logistic regression we directly define the cost for the errors with respect 
 
 In order to still use gradient descent as a convex optimization method with the $L_1$ norm, we use the method of subgradient when updating the value of $v$. The update that we derived is the following:
 \begin{equation}
- v= v + S_{\lambda} (x-t_s \frac{y_n}{v}, \lambda)
+ v= v + S_{\lambda} (v-t_s \frac{\partial L}{\partial v}, \lambda)
 \end{equation}
 where
 \begin{equation}
-S_{\lambda} = 
+S_{\lambda} (k, \lambda) = 
 \left\{
 	\begin{array}{ll}
-		x-\lambda  & \mbox{if } x > \lambda  \\
-		x+\lambda & \mbox{if } x < -\lambda \\
+		k-\lambda  & \mbox{if } k > \lambda  \\
+		k+\lambda & \mbox{if } k < -\lambda \\
 		0 & \mbox{otherwise}
 	\end{array}
 \right.
@@ -200,6 +197,21 @@ Furthermore, we normalize the values in the vector $v$ in order to retrieve the 
 
 \begin{equation}
 v = \frac{v}{\sum_{i=1}^M v_i}
+\end{equation}
+
+Multiclass classification:
+
+\begin{equation}
+ L(w,v)= -\frac{1}{N} \sum_{n=1}^N \sum_{k=1}^K (\hat{y}_{nk} \log \sum_{i=1}^M v_i y_{nik}) + \psi \sum_{i=1}^{M} (y_{ni} - z_{ni})^2+\lambda \mid v \mid
+\end{equation}
+
+Full expertise model:
+
+
+\begin{equation}
+\begin{split}
+ L(w,v)= -\frac{1}{N} \sum_{n=1}^N (\hat{y}_n \log \sum_{i=1}^M v_{ni} y_{ni} + (1-\hat{y}_n) \log(1-\sum_{i=1}^M v_{ni} y_{ni})) + \\ \psi \sum_{i=1}^{M} (y_{ni} - z_{ni})^2+\sum_{n=1}^{N}\lambda \mid v_n \mid
+\end{split} 
 \end{equation}
 
  
