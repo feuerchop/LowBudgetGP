@@ -6,7 +6,7 @@ from training import LowBudgetCrowdsourcing
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from sklearn.metrics import log_loss
-from optimization_no_annotations import GenGradDescModelNoAnnotations
+from optimization_backprop import GenGradDescModelNoAnnotations
 import sys
 import scipy.io as sio
 import ConfigParser
@@ -347,7 +347,7 @@ def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIM
     loss_cv = []
     num_clients = len(all_data[2])
     tests = []
-    NUM_IT_W=10
+    NUM_IT_W=5
 
     for test_i in range(num_cv):
         print "Test {0}".format(test_i)
@@ -365,10 +365,11 @@ def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIM
         multiclass = True
 
         if (multiclass):
-            random_w = np.random.normal(0, 0.0000005, (num_clients, m, num_classes))
-        else:
-            random_w = np.random.normal(0, 0.5, (num_clients, m))
-        train_model = GenGradDescModelNoAnnotations(random_w, random_v, multiclass=True, num_classes=10, stochastic=True)
+            h = m # number of hidden layers
+            random_w = np.random.normal(0, 0.0000005, (num_clients, h, num_classes)) # output layer weights
+            random_w_h = np.random.normal(0,0.0000005, (num_clients, m, h)) # hidden layer weights
+            
+        train_model = GenGradDescModelNoAnnotations(random_w, random_v, random_w_h, multiclass=True, num_classes=10, stochastic=True)
         print "Converting inputs to binary..."
         y_gt_train = np.zeros((np.size(training_data[1],0), num_classes))
         y_annotations_train = []
@@ -516,20 +517,26 @@ if __name__=="__main__":
 
                 if (len(sys.argv)>6):                                                                                                                                                                      
                     NUM_IT_V = int(sys.argv[6])
+                    if (len(sys.argv)>7):
+                        PARAM_LAMBDA_W = float(sys.argv[7])
+                    else:
+                        PARAM_LAMBDA_W = 0.000001
+                        
                 else:
                     NUM_IT_V = 10
             else:
                 PARAM_LAMBDA = 0.00001
                 NUM_IT_V = 10
+                PARAM_LAMBDA_W = 0.000001
 
             PARAM_LAMBDA_ANNOTATIONS = 1000
             PARAM_LAMBDA_W = 0.0001
-            TIMESTEP = 0.000001
+            TIMESTEP = PARAM_LAMBDA_W/10.0
 #            PARAM_LAMBDA = 0.00001
             #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
             for i in range(1):
                 task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
-                pickle.dump(task_results, open("./results_new/results_mlp_{0}_{1}.bin".format(PARAM_LAMBDA,i), 'wb+'))
+                pickle.dump(task_results, open("results_mlp_{0}_{1}.bin".format(PARAM_LAMBDA,i), 'wb+'))
 
 
         else:
@@ -555,26 +562,28 @@ if __name__=="__main__":
                 NUM_IT_V = int(sys.argv[6])
                 if (len(sys.argv)>7):
                     stochastic_size=int(sys.argv[7])
+                    if (len(sys.argv)>8):
+                        PARAM_LAMBDA_W = float(sys.argv[8])
+                    else:
+                        PARAM_LAMBDA_W = 0.000001 
                 else:
                     stochastic_size = 1000
+                    PARAM_LAMBDA_W = 0.000001
             else:
                 NUM_IT_V = 5
                 stochastic_size=1000
+                PARAM_LAMBDA_W = 0.000001
         else:
             PARAM_LAMBDA = 0.001
             NUM_IT_V = 5
             stochastic_size = 1000
+            PARAM_LAMBDA_W = 0.000001
 
 
         print "testing mnist..."
-        PARAM_LAMBDA_ANNOTATIONS = 1000
-        NUM_IT_P = 5
-        PARAM_LAMBDA_W = 0.0000001
-        TIMESTEP = 0.00000001
-#        PARAM_LAMBDA = 0.001
-        # test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
-        #sys.stdout = open(
-        #    'output_mnist_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
+        PARAM_LAMBDA_ANNOTATIONS = 10000
+        NUM_IT_V = 5
+        TIMESTEP = PARAM_LAMBDA_W/10.0
 
         num_experts = arg_3
 

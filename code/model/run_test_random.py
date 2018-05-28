@@ -337,7 +337,7 @@ def test_synthetic(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP,
         print loss_cv[test_i]
     print np.mean(loss_cv)
 
-def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method, num_experts, arg_iterations, stochastic_size):
+def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method, num_experts, arg_iterations, stochastic_size):
 #    np.random.seed(1337)
     all_data = load_data_mnist(num_experts)
     print "data loaded"
@@ -347,8 +347,6 @@ def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIM
     loss_cv = []
     num_clients = len(all_data[2])
     tests = []
-    NUM_IT_W=10
-
     for test_i in range(num_cv):
         print "Test {0}".format(test_i)
         training_data, test_data = divide_data_synthetic(all_data, cv_indices, test_i)
@@ -394,7 +392,10 @@ def test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIM
 
         
         print "******************TRAINING******************"
-        [train_loss, v_nonzero, error_percentage]=train_model.optimization(training_data[0], y_gt_train, training_data[2], y_annotations_train, NUM_IT=arg_iterations, NUM_IT_W=NUM_IT_W, NUM_IT_V=NUM_IT_V, PARAM_LAMBDA_W=PARAM_LAMBDA_W, PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA, TIMESTEP=TIMESTEP, method=method, stochastic_size=stochastic_size)
+        [train_loss, v_nonzero, error_percentage]=train_model.optimization(training_data[0], y_gt_train, training_data[2], y_annotations_train, NUM_IT=arg_iterations,
+                                 NUM_IT_P=NUM_IT_P, PARAM_LAMBDA_W=PARAM_LAMBDA_W,
+                                 PARAM_LAMBDA_ANNOTATIONS=PARAM_LAMBDA_ANNOTATIONS, PARAM_LAMBDA=PARAM_LAMBDA,
+                                                                           TIMESTEP=TIMESTEP, method=method, stochastic_size=stochastic_size)
         print "******************TESTING******************"
         loss_cv.append(train_model.test(test_data[0], y_gt_test, test_data[2], y_annotations_test, PARAM_LAMBDA_ANNOTATIONS, method))
         tests.append((train_loss, v_nonzero, error_percentage, loss_cv[test_i]))
@@ -484,7 +485,7 @@ if __name__=="__main__":
 
         elif method== 'logreg':
             print "Fast test  of logreg with manually assigned parameters"
-            print sys.argv
+
             if (len(sys.argv)>5):
                 PARAM_LAMBDA = float(sys.argv[5])
 
@@ -500,11 +501,11 @@ if __name__=="__main__":
 #            NUM_IT_V = 10
             PARAM_LAMBDA_W = 0.0001
             TIMESTEP = 0.0001
-#            PARAM_LAMBDA = 0.00001
+            PARAM_LAMBDA = 0.00001
 #            if (len(sys.argv)>4):
 #                PARAM_LAMBDA = arg_lambda
-            #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')            
-            print "Test for PARAM_LAMBDA={0}".format(PARAM_LAMBDA)
+            #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations),'w+')
+            print "Test..."
             for i in range(1): # make multiple crossvalidation tests
                 task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', task_id, arg_iterations)
                 pickle.dump(task_results, open("results_logreg_{0}_{1}.bin".format(PARAM_LAMBDA, i), 'wb+'))
@@ -514,7 +515,8 @@ if __name__=="__main__":
             if (len(sys.argv)>5):
                 PARAM_LAMBDA = float(sys.argv[5])
 
-                if (len(sys.argv)>6):                                                                                                                                                                      
+                if (len(sys.argv)>6):                                                                                                                                                                      \
+
                     NUM_IT_V = int(sys.argv[6])
                 else:
                     NUM_IT_V = 10
@@ -523,13 +525,14 @@ if __name__=="__main__":
                 NUM_IT_V = 10
 
             PARAM_LAMBDA_ANNOTATIONS = 1000
+#            NUM_IT_P = 10
             PARAM_LAMBDA_W = 0.0001
             TIMESTEP = 0.000001
-#            PARAM_LAMBDA = 0.00001
+            PARAM_LAMBDA = 0.00001
             #sys.stdout = open('output_real_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
-            for i in range(1):
+            for i in range(10):
                 task_results = test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'MLP', task_id, arg_iterations)
-                pickle.dump(task_results, open("./results_new/results_mlp_{0}_{1}.bin".format(PARAM_LAMBDA,i), 'wb+'))
+                pickle.dump(task_results, open("results_mlp_{0}_{1}.bin".format(PARAM_LAMBDA,i), 'wb+'))
 
 
         else:
@@ -549,38 +552,22 @@ if __name__=="__main__":
 
     elif (test =='mnist'):
 
-        if (len(sys.argv)>5):
-            PARAM_LAMBDA = float(sys.argv[5])
-            if (len(sys.argv)>6):
-                NUM_IT_V = int(sys.argv[6])
-                if (len(sys.argv)>7):
-                    stochastic_size=int(sys.argv[7])
-                else:
-                    stochastic_size = 1000
-            else:
-                NUM_IT_V = 5
-                stochastic_size=1000
-        else:
-            PARAM_LAMBDA = 0.001
-            NUM_IT_V = 5
-            stochastic_size = 1000
-
+        if (len(sys.argv)>5):                                                                                                                                                                                  
+            stochastic_size = float(sys.argv[5])       
 
         print "testing mnist..."
         PARAM_LAMBDA_ANNOTATIONS = 1000
         NUM_IT_P = 5
         PARAM_LAMBDA_W = 0.0000001
         TIMESTEP = 0.00000001
-#        PARAM_LAMBDA = 0.001
+        PARAM_LAMBDA = 0.001
         # test_optimization_no_annotations(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG')
         #sys.stdout = open(
         #    'output_mnist_{0}_{1}_{2}.txt'.format(method, task_id, arg_iterations), 'w+')
 
         num_experts = arg_3
 
-        print "{0} experts, {1} iterations, {2} stochastic size".format(num_experts, arg_iterations, stochastic_size)
-
-        task_results = test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_V, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, method.upper(), num_experts, arg_iterations, stochastic_size)
+        task_results = test_synthetic_mnist(PARAM_LAMBDA_ANNOTATIONS, NUM_IT_P, PARAM_LAMBDA_W, TIMESTEP, PARAM_LAMBDA, 'LOGREG', num_experts, arg_iterations, stochastic_size)
         pickle.dump(task_results, open("results_mnist_{0}.bin".format(num_experts), 'wb+'))
 
 
