@@ -63,7 +63,7 @@
 %
 \mainmatter              % start of the contributions
 %
-\title{ Communication-efficient Learning from Multiple Experts}
+\title{ Low-Budget Learning from Multiple Experts}
 %
 %\titlerunning{Hamiltonian Mechanics}  % abbreviated title (for running head)
 %                                     also used for the TOC unless
@@ -254,22 +254,20 @@ Next, we execute a similar test with the parameter $v$. We look at how the numbe
     \label{fig:optimization}
 \end{figure}
 
-
-
-
 \subsection{Performance per task}
 
 In the following figures we examine the breakdown of classification error rate per labeling task. We can notice on \autoref{fig:pertask} that the performance of our classifier ensemble has a high variation, both when using a neural network and logistic regression.
 
 \begin{figure}[!htb]
+
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/task_logreg}
-        \caption{A gull}
+        \caption{Logistic regression}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/task_mlp}
-        \caption{A gull}
+        \caption{Neural network}
     \end{subfigure}
     \caption{Performance per task}
     \label{fig:pertask}
@@ -286,11 +284,11 @@ This comparison is shown on Figure~\ref{fig:baseline}.
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/comp_average}
-        \caption{A gull}
+        \caption{Logistic regression}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/comp_average_mlp}
-        \caption{A gull}
+        \caption{Neural network}
     \end{subfigure}
     \caption{Comparison with baseline}
     \label{fig:baseline}
@@ -305,11 +303,11 @@ In this subsection we test the performance penalty of enforcing sparsity on the 
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
-        \caption{A gull}
+        \caption{Logistic regression}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
-        \caption{A gull}
+        \caption{Neural network}
     \end{subfigure}
     \caption{Effect of sparsity on model accuracy}
     \label{fig:sparsity}
@@ -324,11 +322,11 @@ In the beginning, we examine the changes of the loss function when increasing th
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/accuracy_lambda}
-        \caption{A gull}
+        \caption{Logistic regression}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/accuracy_lambda_mlp}
-        \caption{A gull}
+        \caption{Neural network}
     \end{subfigure} 
   \caption{Sensitivity to the hyperparameter}
   \label{fig:sensitivity}
@@ -345,13 +343,13 @@ In this subsection we show the classification performance on our synthetically g
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
-        \caption{Logistic Regression}
+        \caption{Loss minimization}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
         \caption{Neural Network}
     \end{subfigure}
-  \caption{Accuracy for MNIST data}
+  \caption{Reduction of annotator subset}
   \label{fig:synthetic}
 \end{figure}
 
@@ -384,11 +382,11 @@ In the next group of plots we show how the size of the annotator subset grows wi
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
-        \caption{A gull}
+        \caption{Active annotators for different total number}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \includegraphics[width=\textwidth]{figures/plot_mlp}
-        \caption{A gull}
+        \caption{Accuracy for various initial number of annotators}
     \end{subfigure}
   \caption{Change of size of the annotator groups}
   \label{fig:subset}
@@ -402,6 +400,7 @@ In the next group of plots we show how the size of the annotator subset grows wi
 
 \section{Conclusion}
 
-
+\bibliographystyle{plain}
+\bibliography{draft} 
 
 \end{document}
